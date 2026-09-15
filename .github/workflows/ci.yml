@@ -59,6 +59,13 @@ jobs:
       - name: UI rules — colour tokens, t(), NativeWind no-ops
         run: npm run check:ui
 
+      # A paid claim is a promise the buyer pays for, so this belongs in CI and not
+      # only in the local verify. It was local-only until rectap proved the gap: a
+      # scaffold whose paywall was entirely the template's placeholder copy went
+      # green here, twice, while `npm run verify` refused it on the same commit.
+      - name: Paywall copy describes this app, not the template
+        run: node scripts/check-paywall-copy.mjs
+
       # The closest thing to "does the app actually load" without a device: a real
       # Metro production build resolves every import and every route, so a broken
       # module path or a bad expo-router file cannot reach a build.

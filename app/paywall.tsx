@@ -27,6 +27,7 @@ export default function Paywall() {
   const { colors, spacing, radius } = useTheme();
 
   const lifetime = usePremiumStore((s) => s.lifetime);
+  const offeringsResolved = usePremiumStore((s) => s.offeringsResolved);
   const isPremium = usePremiumStore((s) => s.isPremium);
   const isPurchasing = usePremiumStore((s) => s.isPurchasing);
   const error = usePremiumStore((s) => s.error);
@@ -107,6 +108,15 @@ export default function Paywall() {
               loading={isPurchasing}
               onPress={() => void purchase(lifetime)}
             />
+          ) : offeringsResolved ? (
+            // Resolved, with no package: the store is genuinely unreachable or carries no
+            // product yet. Say that, and keep Restore reachable below — a user who already
+            // paid must still be able to get their purchase back.
+            <View style={{ padding: spacing.xl, alignItems: 'center' }}>
+              <Text variant="caption" tone="muted" align="center">
+                {t('storeUnavailable')}
+              </Text>
+            </View>
           ) : (
             <View style={{ padding: spacing.xl, alignItems: 'center' }}>
               <ActivityIndicator color={colors.textMuted} />

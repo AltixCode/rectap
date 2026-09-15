@@ -1,0 +1,55 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote",
+    "requireCommit": true
+  },
+  "build": {
+    "base": {
+      "node": "24.21.0",
+      "env": {
+        "EXPO_NO_TELEMETRY": "1"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": { "APP_VARIANT": "development" },
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "env": { "APP_VARIANT": "preview" },
+      "android": { "buildType": "apk" },
+      "autoIncrement": true
+    },
+    "production": {
+      "extends": "base",
+      "distribution": "store",
+      "channel": "production",
+      "env": { "APP_VARIANT": "production" },
+      "android": { "buildType": "app-bundle" },
+      "ios": { "resourceClass": "m-medium" },
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "$ASC_APP_ID",
+        "appleTeamId": "$APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": false
+      }
+    }
+  }
+}

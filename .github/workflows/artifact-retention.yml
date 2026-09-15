@@ -1,0 +1,59 @@
+name: Artifact retention
+
+# Keeps only the newest builds and deletes the rest, so release artifacts cannot quietly fill
+# the account's Actions storage quota again. Runs after every build that uploads something,
+# and daily as a safety net in case a run is cancelled before its cleanup step.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Artifacts to keep per name
+        default: '2'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: artifact-retention
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete all but the newest artifacts of each name
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          KEEP: ${{ github.event.inputs.keep || '2' }}
+        run: |
+          set -euo pipefail
+
+          # name <TAB> id <TAB> created_at, newest first within each name.
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
+            -q '.artifacts[] | [.name, (.id|tostring), .created_at] | @tsv' \
+            | sort -k1,1 -k3,3r > /tmp/artifacts.tsv || true
+
+          if [ ! -s /tmp/artifacts.tsv ]; then
+            echo "No artifacts."
+            exit 0
+          fi
+
+          awk -F'\t' -v KEEP="$KEEP" '{ c[$1]++; if (c[$1] > KEEP) print $2 }' \
+            /tmp/artifacts.tsv > /tmp/delete.txt
+
+          total=$(wc -l < /tmp/artifacts.tsv | tr -d ' ')
+          doomed=$(wc -l < /tmp/delete.txt | tr -d ' ')
+          echo "$total artifacts; keeping $KEEP per name; deleting $doomed."
+
+          while read -r id; do
+            [ -z "$id" ] && continue
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && echo "deleted $id"
+          done < /tmp/delete.txt
+
+          echo "Done."

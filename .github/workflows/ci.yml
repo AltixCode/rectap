@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, typecheck, tests, i18n and bundles
+    # Deliberately NOT pinned to an OS. Both self-hosted ARM64 runners — the
+    # Linux container and the macOS box — can run these Node-only steps, and a
+    # job asking for a label no ONLINE runner offers does not fail, it queues
+    # forever. Requiring `Linux` did exactly that when the container went down.
+    runs-on: [self-hosted, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # The self-hosted ARM64 Linux runner is a container with no Node on PATH;
+      # without this every step dies with "npm: command not found".
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:ci
+
+      - name: i18n completeness
+        run: npm run check:i18n
+
+      - name: UI rules — colour tokens, t(), NativeWind no-ops
+        run: npm run check:ui
+
+      # The closest thing to "does the app actually load" without a device: a real
+      # Metro production build resolves every import and every route, so a broken
+      # module path or a bad expo-router file cannot reach a build.
+      - name: Export iOS and Android bundles
+        run: |
+          npx expo export --platform ios --output-dir dist/ios
+          npx expo export --platform android --output-dir dist/android
+        env:
+          APP_VARIANT: production
+          EXPO_NO_TELEMETRY: '1'
+
+      - name: Report bundle size
+        run: |
+          echo "### Bundle size" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -sh dist/ios/_expo/static/js/* dist/android/_expo/static/js/* >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # Only on failure — that is when the report is worth reading — and never
+      # blocking: an Actions storage quota is not a reason to fail a green run.
+      - name: Upload coverage report
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov-report
+          retention-days: 3
+          if-no-files-found: ignore
+
+  release-gate:
+    name: Release identifiers present
+    runs-on: [self-hosted, ARM64]
+    timeout-minutes: 15
+    # Only the production path needs real identifiers; a preview build is
+    # SUPPOSED to carry Google's test units.
+    if: github.ref == 'refs/heads/main'
+    env:
+      ADMOB_IOS_APP_ID: ${{ secrets.ADMOB_IOS_APP_ID }}
+      ADMOB_ANDROID_APP_ID: ${{ secrets.ADMOB_ANDROID_APP_ID }}
+      EXPO_PUBLIC_ADMOB_IOS_BANNER_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_IOS_BANNER_ID }}
+      EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID }}
+      EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_ID }}
+      EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_ID }}
+      EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID }}
+      EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID: ${{ secrets.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID }}
+      EXPO_PUBLIC_REVENUECAT_IOS_KEY: ${{ secrets.EXPO_PUBLIC_REVENUECAT_IOS_KEY }}
+      EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: ${{ secrets.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - run: npm ci
+      # A missing identifier fails NOTHING on its own: the app falls back to
+      # Google's test ad units, serves ads perfectly, and earns nothing. This is
+      # the only thing that catches it.
+      - name: check:release
+        run: npm run check:release

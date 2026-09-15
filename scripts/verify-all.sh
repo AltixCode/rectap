@@ -31,6 +31,9 @@ node scripts/check-ui-rules.mjs
 step 'paywall copy is about this app, not the template'
 node scripts/check-paywall-copy.mjs
 
+step 'the ad the paywall sells the removal of can actually appear'
+node scripts/check-ad-wiring.mjs
+
 step 'Expo configuration resolves'
 npx expo config --type public >/dev/null
 

@@ -22,6 +22,8 @@ npm test -- --ci --coverage
 
 step 'i18n completeness (14 locales, no partial key set)'
 node scripts/check-i18n.mjs
+step 'no string mixes writing systems'
+node scripts/check-locale-scripts.mjs
 
 step 'UI rules (colour tokens, t(), NativeWind no-ops)'
 node scripts/check-ui-rules.mjs

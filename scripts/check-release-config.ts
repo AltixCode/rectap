@@ -17,24 +17,52 @@ import {
 const missing = missingReleaseConfigFrom(process.env);
 
 /*
- * Shape is checked before absence is reported, because a malformed identifier
- * is the more dangerous of the two by a wide margin. A missing one costs
- * revenue; a malformed AdMob app id makes the Ads SDK abort on startup, so the
- * app dies on its first frame — and it passes the missing-check, being present,
- * non-blank and not a test value.
+ * Shape is checked before absence, and only the AdMob *app* ids are fatal.
+ *
+ * That split is evidence-based, not caution. A malformed app id provably ships
+ * a binary that dies: six apps went to TestFlight with
+ * `GADApplicationIdentifier` set to the literal string "-", read straight out
+ * of their IPAs, and the Google Mobile Ads SDK raises at startup on it. The app
+ * id reaches the Info.plist through the config plugin at prebuild, so a bad
+ * repo secret lands in the binary with nothing in between.
+ *
+ * The unit ids and RevenueCat keys are different. Loopwits' repo secrets for
+ * those are placeholders, yet its shipped bundle contains real values — they
+ * are supplied to the build from the EAS environment instead. So a malformed
+ * repo secret there does not mean a broken build, and failing on it would
+ * block builds that work. Those are reported and not fatal; a genuinely
+ * missing one is still caught by the absence check below, which is what has
+ * always guarded revenue.
  */
 const malformed = malformedReleaseConfigFrom(process.env);
-if (malformed.length > 0) {
-  console.error('\n✗ This build would crash on launch.\n');
-  for (const key of malformed) {
+const fatal = malformed.filter((key) => key.endsWith('_APP_ID'));
+const advisory = malformed.filter((key) => !key.endsWith('_APP_ID'));
+
+if (advisory.length > 0) {
+  console.warn('\n! Identifiers that do not look right, but are not fatal:\n');
+  for (const key of advisory) {
+    console.warn(`    ${explainMalformed(key, process.env[key] as string)}`);
+  }
+  console.warn(
+    '\nThese can legitimately come from the EAS environment rather than a\n' +
+      'repository secret, so a placeholder here does not necessarily reach the\n' +
+      'build. Worth checking; not worth failing.\n',
+  );
+}
+
+if (fatal.length > 0) {
+  console.error('\n\u2717 This build would crash on launch.\n');
+  for (const key of fatal) {
     console.error(`    ${explainMalformed(key, process.env[key] as string)}`);
   }
   console.error(
     [
       '',
-      'An AdMob app id and an ad unit id differ only by "~" versus "/", and the',
-      'Google Mobile Ads SDK treats a malformed app id as a programming error:',
-      'it aborts, and the app dies on its first frame with nothing on screen.',
+      'The AdMob app id goes into the Info.plist at prebuild, so this value',
+      'reaches the binary directly. The Google Mobile Ads SDK treats a malformed',
+      'application identifier as a programming error and aborts: the app dies on',
+      'its first frame with nothing on screen. Six apps have already shipped',
+      'exactly this, carrying the literal string "-".',
       'Correct the value in the repository secret, not here.',
       '',
     ].join('\n'),

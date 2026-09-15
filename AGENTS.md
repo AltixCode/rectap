@@ -6,10 +6,10 @@ Read this before changing anything.
 `/Volumes/ExtremePro/Dev/AGENTS.md`, then
 `/Volumes/ExtremePro/Dev/docs/agents/18-app-lifecycle.md` (the phase order and
 its gates), then `/Volumes/ExtremePro/Dev/MOBILE-PLAYBOOK.md`. This app's plan
-section is in `/Volumes/ExtremePro/Dev/next_mobile_apps/ADS-PLAN.md`.
+section is in `/Volumes/ExtremePro/Dev/mobile_expo_apps/_shared/ADS-PLAN.md`.
 
 **Shared code is generated, not owned here.** Everything outside `src/logic/`
-and the game screens comes from `AltixCode/next-mobile-apps` (`_template/` plus
+and the game screens comes from `mobile_expo_apps/_shared` (`AltixCode/next-mobile-apps`) (`_template/` plus
 `apps.json`). Fix it there and re-run `node scripts/bootstrap.mjs rectap`,
 never in this copy — otherwise the next regeneration silently reverts it.
 

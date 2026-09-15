@@ -12,15 +12,41 @@
  * Nothing else catches this: the strings are present in all fourteen locales,
  * so check:i18n passes, and no test asserts that copy is true.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = readFileSync(resolve(ROOT, 'src/i18n/index.ts'), 'utf8');
 
-// The English block is the one an author edits; the rest follow from it.
-const en = source.split('  en: {')[1]?.split('\n  es: {')[0] ?? '';
+/**
+ * Where the claims live.
+ *
+ * Most apps keep them in `src/i18n/index.ts` under `feat*` keys. Some do not:
+ * a single-language app can hardcode the sentences straight into the paywall
+ * screen, and requiring the i18n file meant such an app was silently exempt —
+ * a paywall no gate could read, reported as nothing at all. So fall back to
+ * the screen itself and match on the sentences rather than the keys.
+ */
+function paywallSource() {
+  const keyed = resolve(ROOT, 'src/i18n/index.ts');
+  if (existsSync(keyed)) {
+    const source = readFileSync(keyed, 'utf8');
+    // The English block is the one an author edits; the rest follow from it.
+    return { text: source.split('  en: {')[1]?.split('\n  es: {')[0] ?? '', keyed: true };
+  }
+  for (const rel of ['app/paywall.tsx', 'src/screens/PaywallScreen.tsx']) {
+    const file = resolve(ROOT, rel);
+    if (existsSync(file)) return { text: readFileSync(file, 'utf8'), keyed: false };
+  }
+  return null;
+}
+
+const found_source = paywallSource();
+if (found_source === null) {
+  console.log('check-paywall-copy: no paywall copy found — nothing to check.');
+  process.exit(0);
+}
+const en = found_source.text;
 
 const TEMPLATE_DEFAULTS = [
   ['feat2Desc', 'Every level, every mode and the full archive, at your own pace.'],
@@ -30,6 +56,11 @@ const TEMPLATE_DEFAULTS = [
 ];
 
 const found = TEMPLATE_DEFAULTS.filter(([key, value]) => {
+  if (!found_source.keyed) {
+    // Hardcoded copy has no keys to look up, so the sentence itself is the
+    // match. Same claim, same verdict, wherever it is written.
+    return en.includes(value);
+  }
   const match = en.match(new RegExp(`${key}: '([^']*)'`));
   return match && match[1] === value;
 });

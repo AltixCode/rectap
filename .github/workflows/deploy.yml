@@ -1,12 +1,14 @@
 name: Build, Release & Store Submission Pipeline
 
 on:
-  # Deliberately NOT `push: branches: [main]`, which is what the earlier apps do.
-  #
-  # Rendered across eighteen repos that would be thirty-six native builds on
-  # every merge, on the machine that hit load average 66 and panicked today. A
-  # release is an act, not a side effect of merging: tag it, or press the button.
+  # Every push to main builds both platforms. Three self-hosted macOS runners
+  # each take one job at a time, so eighteen repos pushing is a queue three
+  # deep, not eighteen builds at once — the crash earlier today was several
+  # native compilers sharing ONE machine, which is a different problem from
+  # queue depth and is handled by the Gradle worker cap below.
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -192,7 +194,6 @@ jobs:
               -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
               -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_KEY_ISSUER" \
               CODE_SIGN_STYLE=Automatic \
-              CODE_SIGN_IDENTITY="Apple Distribution" \
               COMPILER_INDEX_STORE_ENABLE=NO \
               DEVELOPMENT_TEAM="8Q8Y559285"
           else
@@ -205,7 +206,6 @@ jobs:
               -archivePath "build/${SCHEME}.xcarchive" \
               -derivedDataPath "build/DerivedData" \
               CODE_SIGN_STYLE=Automatic \
-              CODE_SIGN_IDENTITY="Apple Distribution" \
               COMPILER_INDEX_STORE_ENABLE=NO \
               DEVELOPMENT_TEAM="8Q8Y559285"
           fi

@@ -30,7 +30,12 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # A self-hosted macOS runner inherits a 256-descriptor limit from launchd,
+        # and `npm ci` on an Expo tree opens more than that — it fails with
+        # ENFILE partway through, leaving node_modules half written.
+        run: |
+          ulimit -n 8192 || true
+          npm ci
 
       - name: Lint
         run: npm run lint
@@ -101,7 +106,9 @@ jobs:
         with:
           node-version: 24.21.0
           cache: npm
-      - run: npm ci
+      - run: |
+          ulimit -n 8192 || true
+          npm ci
       # A missing identifier fails NOTHING on its own: the app falls back to
       # Google's test ad units, serves ads perfectly, and earns nothing. This is
       # the only thing that catches it.

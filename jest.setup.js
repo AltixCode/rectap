@@ -36,10 +36,17 @@ jest.mock('react-native-google-mobile-ads', () => {
   const { View } = require('react-native');
   return {
     __esModule: true,
-    default: () => ({
-      initialize: jest.fn().mockResolvedValue([]),
-      setRequestConfiguration: jest.fn().mockResolvedValue(undefined),
-    }),
+    // One instance, not a fresh pair of mocks per call. `mobileAds()` returning
+    // a new object every time made "was the SDK initialised?" unassertable:
+    // the mock a test held was never the mock the code called, so every such
+    // assertion silently checked a function nobody had invoked.
+    default: (() => {
+      const instance = {
+        initialize: jest.fn().mockResolvedValue([]),
+        setRequestConfiguration: jest.fn().mockResolvedValue(undefined),
+      };
+      return () => instance;
+    })(),
     BannerAd: (props) => React.createElement(View, { testID: 'banner-ad', ...props }),
     BannerAdSize: { ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER' },
     MaxAdContentRating: { G: 'G' },

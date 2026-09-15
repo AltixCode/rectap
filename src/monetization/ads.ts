@@ -72,6 +72,11 @@ export async function showPrivacyOptionsForm(): Promise<boolean> {
   try {
     const info = (await AdsConsent.showPrivacyOptionsForm()) as unknown as ConsentInfoLike;
     applyConsent(summariseConsent(info));
+    // The user may have just opted in for the first time. This is the only path
+    // by which consent changes mid-session, so if nothing starts the SDK here
+    // nothing ever will -- the banner renders against an uninitialised SDK and
+    // silently never fills.
+    if (consent.canServeAds) await initializeAds();
     return true;
   } catch {
     return false;
@@ -93,16 +98,20 @@ export async function requestTrackingPermission(): Promise<boolean> {
 
 export async function initializeAds(): Promise<void> {
   if (initialised) return;
-  initialised = true;
   try {
     // Only gather if nothing has yet -- `bootstrapAds` does it first so that ATT can be
     // ordered after it, and gathering twice re-presents the form.
     if (!consentGathered) applyConsent(await gatherConsent());
     if (!consent.canServeAds) {
-      // Nothing is initialised and no banner renders. The flag stays set so the form is not
-      // presented again on every screen that asks for an ad.
+      // Nothing is initialised and no banner renders. `initialised` deliberately
+      // stays false: a refusal is a decision about consent, not a permanent
+      // decision about the SDK, and the user can still opt in through the
+      // privacy options form. Re-presenting the form is prevented by
+      // `consentGathered`; using `initialised` for that job as well is what
+      // left the SDK unstartable for the rest of the session.
       return;
     }
+    initialised = true;
     await mobileAds().setRequestConfiguration({
       // The app is rated 4+ but is not directed at children; G-rated ad content
       // keeps it comfortably inside both stores' rating policies.
@@ -140,8 +149,9 @@ export async function bootstrapAds(): Promise<void> {
   // consent form each time.
   if (!consentGathered) applyConsent(await gatherConsent());
   if (!consent.canServeAds) {
-    // Fail closed. `initialised` is set so nothing re-presents the form on every screen.
-    initialised = true;
+    // Fail closed. `consentGathered` is what stops the form being re-presented
+    // on every screen; latching `initialised` here would also make a later
+    // opt-in unable to start the SDK.
     return;
   }
   await requestTrackingPermission();

@@ -51,6 +51,19 @@ async function trace(
         privacyOptionsRequirementStatus: 'REQUIRED',
       };
     });
+    AdsConsent.showPrivacyOptionsForm.mockImplementation(async () => {
+      calls.push('showPrivacyOptionsForm');
+      return {
+        status: 'OBTAINED',
+        canRequestAds: true,
+        privacyOptionsRequirementStatus: 'REQUIRED',
+      };
+    });
+    const mobileAds = require('react-native-google-mobile-ads').default;
+    mobileAds().initialize.mockImplementation(async () => {
+      calls.push('initialize');
+      return [];
+    });
     tracking.getTrackingPermissionsAsync.mockResolvedValue({ granted: false, canAskAgain: true });
     tracking.requestTrackingPermissionsAsync.mockImplementation(async () => {
       calls.push('requestTracking');
@@ -66,9 +79,12 @@ async function trace(
 describe('bootstrapAds', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('gathers UMP consent before it asks for tracking permission', async () => {
+  it('gathers UMP consent, then asks for tracking, then starts the SDK', async () => {
+    // The whole order in one assertion. It used to stop at 'requestTracking'
+    // because `mobileAds()` handed out a fresh mock per call, so the SDK's own
+    // initialisation was invisible to every test in this file.
     const calls = await trace({ canRequestAds: true }, (ads) => ads.bootstrapAds());
-    expect(calls).toEqual(['gatherConsent', 'requestTracking']);
+    expect(calls).toEqual(['gatherConsent', 'requestTracking', 'initialize']);
   });
 
   it('never asks for tracking when consent does not allow ads', async () => {
@@ -84,6 +100,24 @@ describe('bootstrapAds', () => {
       await ads.bootstrapAds();
     });
     expect(calls.filter((call) => call === 'gatherConsent')).toHaveLength(1);
+  });
+
+  /**
+   * A refusal is for this session's *consent*, not for the SDK forever.
+   *
+   * Refusing set `initialised = true` as a guard against re-presenting the form
+   * on every screen. But `initializeAds` returns immediately when that flag is
+   * set, so once the user opted back in through the privacy options form there
+   * was no path left that could start the SDK. Every banner then rendered
+   * against an uninitialised SDK and silently never filled -- no error, no
+   * crash, just no ads for the rest of the session.
+   */
+  it('starts the SDK when consent is granted after a refusal', async () => {
+    const calls = await trace({ canRequestAds: false }, async (ads) => {
+      await ads.bootstrapAds();
+      await ads.showPrivacyOptionsForm();
+    });
+    expect(calls).toContain('initialize');
   });
 
   it('serves no ads at all when the consent call throws', async () => {

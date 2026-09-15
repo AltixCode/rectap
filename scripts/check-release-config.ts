@@ -14,6 +14,23 @@ import {
   RELEASE_ENV_KEYS,
 } from '../src/monetization/releaseConfig';
 
+/*
+ * Capture mode must never reach a store build.
+ *
+ * EXPO_PUBLIC_CAPTURE_MODE suppresses ad slots so that a store screenshot
+ * cannot contain a third party's advert. `__DEV__` already makes it inert in
+ * anything that ships -- a release build cannot express it however the
+ * environment is set -- but a flag whose only job is to disable advertising is
+ * worth refusing twice. Shipped by accident it would cost the entire revenue
+ * model and look exactly like an app nobody uses.
+ */
+if (process.env.EXPO_PUBLIC_CAPTURE_MODE) {
+  console.error('\n\u2717 EXPO_PUBLIC_CAPTURE_MODE is set for a release build.\n');
+  console.error('    That flag exists only to suppress ad slots while capturing store');
+  console.error('    screenshots. A store build must never carry it.\n');
+  process.exit(1);
+}
+
 const missing = missingReleaseConfigFrom(process.env);
 
 /*

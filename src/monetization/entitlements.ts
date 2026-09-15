@@ -31,7 +31,29 @@ export type PaywallReason = 'levels' | 'remove-ads' | 'archive' | 'hints' | 'gen
  * entitlements are still loading would flash an ad at a paying user on every cold start — the
  * single most damaging bug this feature can have.
  */
+/**
+ * Suppresses ad slots while capturing store screenshots.
+ *
+ * Twenty-three screenshots reached App Store Connect with a Google *test*
+ * advert across the bottom -- a third party's creative carrying a literal
+ * "Test mode" badge. The cause is a race nobody can win: the banner reserves no
+ * space until an advert loads, so capturing early catches the launch screen and
+ * capturing late catches the advert.
+ *
+ * The fix is to stop the slot rendering rather than to time the shutter.
+ *
+ * `__DEV__` is the guard, and it is what makes this safe: it is false in every
+ * release build, so this flag is inert in anything that ships no matter how the
+ * environment is set. A capture build is a debug build by definition. It also
+ * produces the screenshots a paying customer sees, which is the honest picture
+ * of the app regardless.
+ */
+export function isCaptureMode(): boolean {
+  return __DEV__ && process.env.EXPO_PUBLIC_CAPTURE_MODE === '1';
+}
+
 export function shouldShowAds({ isPremium, isReady }: { isPremium: boolean; isReady: boolean }): boolean {
+  if (isCaptureMode()) return false;
   return isReady && !isPremium;
 }
 

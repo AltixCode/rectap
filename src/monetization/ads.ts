@@ -27,9 +27,11 @@ import { useAdsConsentStore } from '@/store/useAdsConsentStore';
 
 let initialised = false;
 let consent: ConsentSummary = { canServeAds: false, offerPrivacyOptions: false };
+let consentGathered = false;
 
 function applyConsent(next: ConsentSummary): void {
   consent = next;
+  consentGathered = true;
   // Published to the store as well so the banner re-renders when consent resolves.
   useAdsConsentStore.getState().setConsent(next);
   if (__DEV__) console.log('[ads] consent', JSON.stringify(next));
@@ -93,7 +95,9 @@ export async function initializeAds(): Promise<void> {
   if (initialised) return;
   initialised = true;
   try {
-    applyConsent(await gatherConsent());
+    // Only gather if nothing has yet -- `bootstrapAds` does it first so that ATT can be
+    // ordered after it, and gathering twice re-presents the form.
+    if (!consentGathered) applyConsent(await gatherConsent());
     if (!consent.canServeAds) {
       // Nothing is initialised and no banner renders. The flag stays set so the form is not
       // presented again on every screen that asks for an ad.
@@ -118,9 +122,28 @@ export async function initializeAds(): Promise<void> {
  * Safe to call more than once.
  */
 export async function bootstrapAds(): Promise<void> {
-  // Order matters: UMP consent first, then ATT, then the SDK. `initializeAds` gathers consent
-  // itself, so ATT sits between the two -- a tracking prompt shown before the user has agreed
-  // to ads at all is both worse UX and the wrong order for Google's own guidance.
+  // Order matters, and this used to get it backwards: it asked for tracking first and
+  // gathered UMP consent second, so on a real device the ATT alert appeared *stacked on top
+  // of* the still-open consent form. Two modals at once, and the tracking decision made
+  // before the user had been told what the ads are.
+  //
+  // The order now is consent, then ATT, then the SDK:
+  //
+  //   - consent first because it is what decides whether there will be ads at all, and
+  //     Google's own guidance puts the UMP flow ahead of ATT;
+  //   - ATT only when consent allows ads, so nobody is asked for tracking permission for
+  //     ads they will never see;
+  //   - the SDK last, because an ad request that goes out before consent is recorded is the
+  //     policy breach that gets an AdMob account suspended -- and the account is shared by
+  //     every app in the portfolio.
+  // Idempotent: several screens call this, and re-gathering would re-present the
+  // consent form each time.
+  if (!consentGathered) applyConsent(await gatherConsent());
+  if (!consent.canServeAds) {
+    // Fail closed. `initialised` is set so nothing re-presents the form on every screen.
+    initialised = true;
+    return;
+  }
   await requestTrackingPermission();
   await initializeAds();
 }

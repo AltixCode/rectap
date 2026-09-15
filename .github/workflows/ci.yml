@@ -123,5 +123,7 @@ jobs:
       # A missing identifier fails NOTHING on its own: the app falls back to
       # Google's test ad units, serves ads perfectly, and earns nothing. This is
       # the only thing that catches it.
+      # Two claims, one gate: an ad unit that would earn nothing, and paywall copy
+      # that promises what the app does not do. Both pass every other check.
       - name: check:release
         run: npm run check:release

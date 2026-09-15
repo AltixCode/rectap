@@ -9,10 +9,23 @@ import type { ExpoConfig } from 'expo/config';
  * configured the Google sample app ids are used, which only ever serve test ads.
  */
 
+/*
+ * `||`, deliberately, not `??`.
+ *
+ * A GitHub Actions expression for a secret that is missing or empty renders as
+ * the empty STRING, not as undefined — so `??` passes "" straight through and
+ * the app ships with an empty GADApplicationIdentifier. The Google Mobile Ads
+ * SDK treats that as a programming error and deliberately aborts at launch, so
+ * the app dies on its first frame with no UI and no obvious cause. `||` falls
+ * back to Google's test id, which is inert and lets the app run ad-free.
+ *
+ * Five repos currently have no AdMob secrets at all and would build exactly
+ * that binary; they happen to fail the identifier gate first, which masks it.
+ */
 const IOS_ADMOB_APP_ID =
-  process.env.ADMOB_IOS_APP_ID ?? 'ca-app-pub-3940256099942544~1458002511';
+  process.env.ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511';
 const ANDROID_ADMOB_APP_ID =
-  process.env.ADMOB_ANDROID_APP_ID ?? 'ca-app-pub-3940256099942544~3347511713';
+  process.env.ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
 
 /**
  * SKAdNetwork identifiers for the ad networks AdMob mediates on iOS. Without these, iOS

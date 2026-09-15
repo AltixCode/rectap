@@ -64,8 +64,13 @@ const TRACKING_USAGE =
 //
 // There is no app.json here to rewrite — this file *is* the manifest — so the
 // version cannot be bumped by editing JSON the way the older apps do it.
-const VERSION = process.env.APP_VERSION ?? '1.0.0';
-const BUILD = process.env.APP_BUILD ?? '1';
+// `||` for the same reason as the AdMob ids above: these arrive from a CI step,
+// and a step that produces nothing hands over "" rather than nothing at all.
+// An empty CFBundleShortVersionString or CFBundleVersion is not a small
+// cosmetic problem — it is an invalid Info.plist, which Apple rejects on
+// upload and which nothing in this repo would have caught first.
+const VERSION = process.env.APP_VERSION || '1.0.0';
+const BUILD = process.env.APP_BUILD || '1';
 
 const config: ExpoConfig = {
   name: 'Rectap',
@@ -141,7 +146,7 @@ const config: ExpoConfig = {
     ],
   ],
   runtimeVersion: { policy: 'appVersion' },
-  owner: process.env.EXPO_OWNER ?? 'altixcodes-team',
+  owner: process.env.EXPO_OWNER || 'altixcodes-team',
   extra: {
     eas: { projectId: process.env.EAS_PROJECT_ID },
   },

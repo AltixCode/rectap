@@ -65,7 +65,16 @@ describe('Paywall', () => {
   it('lists what the purchase unlocks', async () => {
     const { getByText } = await renderWithProviders(<Paywall />);
     expect(getByText(t('feat1Title'))).toBeTruthy();
-    expect(getByText(t('feat4Desc'))).toBeTruthy();
+    expect(getByText(t('feat1Desc'))).toBeTruthy();
+  });
+
+  // Asserting on `feat4Desc` here would encode the template's shape rather than
+  // this app's claims, and would fail against any honest rewrite that has
+  // fewer than four things to say. What matters is that a blank claim is not
+  // rendered as an empty row.
+  it('renders no row for a claim this app does not make', async () => {
+    const { queryByText } = await renderWithProviders(<Paywall />);
+    expect(queryByText('')).toBeNull();
   });
 
   it('closes itself for a user who already owns it', async () => {

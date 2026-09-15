@@ -33,6 +33,12 @@ async function trace(
 ): Promise<string[]> {
   const calls: string[] = [];
   await jest.isolateModulesAsync(async () => {
+    /* eslint-disable @typescript-eslint/no-require-imports --
+       `require` is required here, not preferred. A dynamic `import()` is
+       resolved against the outer module registry, so it would hand back the
+       same mock instances this file already imported -- the exact bug this
+       helper exists to avoid -- and Jest's CJS runtime needs
+       `--experimental-vm-modules` for ESM inside `isolateModules` anyway. */
     const { AdsConsent } = require('react-native-google-mobile-ads');
     const tracking = require('expo-tracking-transparency');
 
@@ -52,6 +58,7 @@ async function trace(
     });
 
     await body(require('../ads'));
+    /* eslint-enable @typescript-eslint/no-require-imports */
   });
   return calls;
 }

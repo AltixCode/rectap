@@ -26,6 +26,9 @@ node scripts/check-i18n.mjs
 step 'UI rules (colour tokens, t(), NativeWind no-ops)'
 node scripts/check-ui-rules.mjs
 
+step 'paywall copy is about this app, not the template'
+node scripts/check-paywall-copy.mjs
+
 step 'Expo configuration resolves'
 npx expo config --type public >/dev/null
 

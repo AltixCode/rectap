@@ -1,59 +1,46 @@
 #!/usr/bin/env node
 /**
- * Refuses to let an app ship the template's placeholder paywall copy.
+ * Refuses paywall copy that still describes the template rather than this app.
  *
- * The paywall is the one screen where a sentence is a *paid* claim. The template ships
- * plausible-sounding defaults — "every level, every mode and the full archive", "new content
- * is added regularly and is always included" — and they are false for any app without levels
- * or a content pipeline, which is most of them. Nothing else catches it: the strings are
- * present, translated into fourteen locales, and render perfectly.
+ * `_template` ships "Everything unlocked — every level, every mode and the full
+ * archive" and "new content is added regularly and is always included". Most
+ * apps generated from it have no modes, no archive, or no content pipeline, so
+ * those sentences are false — and unlike a wrong screenshot they are a **paid**
+ * claim, which makes them a refund and a store-review problem rather than only
+ * an accuracy one.
  *
- * Found in Dicewit, which had neither levels nor an archive and promised both.
- *
- * This checks the `en` block only. The other thirteen locales are translations of whatever
- * `en` says, so if `en` is honest they are too, and `check-i18n.mjs` already proves they exist.
+ * Nothing else catches this: the strings are present in all fourteen locales,
+ * so check:i18n passes, and no test asserts that copy is true.
  */
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = readFileSync(join(ROOT, 'src/i18n/index.ts'), 'utf8');
+const source = readFileSync(resolve(ROOT, 'src/i18n/index.ts'), 'utf8');
 
-/**
- * The placeholders, verbatim. Matching on the exact default rather than on keywords means a
- * real app that genuinely does unlock every level can say so — this fails only copy nobody
- * has looked at.
- */
-const PLACEHOLDERS = [
-  'Everything unlocked',
-  'Every level, every mode and the full archive, at your own pace.',
-  'Your progress stays on the device',
-  'Streaks and statistics are stored on your phone. No account, no sync.',
-  'One payment, all future content',
-  'New content is added regularly and is always included.',
+// The English block is the one an author edits; the rest follow from it.
+const en = source.split('  en: {')[1]?.split('\n  es: {')[0] ?? '';
+
+const TEMPLATE_DEFAULTS = [
+  ['feat2Desc', 'Every level, every mode and the full archive, at your own pace.'],
+  ['feat2Title', 'Everything unlocked'],
+  ['feat3Title', 'Your progress stays on the device'],
+  ['feat4Desc', 'New content is added regularly and is always included.'],
 ];
 
-// Only the `en` block: everything after it is a translation of it.
-const start = source.indexOf('  en: {');
-if (start === -1) {
-  console.error('check-paywall-copy: could not find the en locale block');
+const found = TEMPLATE_DEFAULTS.filter(([key, value]) => {
+  const match = en.match(new RegExp(`${key}: '([^']*)'`));
+  return match && match[1] === value;
+});
+
+if (found.length) {
+  console.error('check-paywall-copy: these still carry the template default:\n');
+  for (const [key, value] of found) console.error(`  ${key}  "${value}"`);
+  console.error('\nEach is a claim the buyer pays for. Rewrite them to what THIS app');
+  console.error('unlocks — checked against its own source, not what would sell well —');
+  console.error('in all fourteen locales. If a claim cannot be made honestly, cut the');
+  console.error('feature and the claim.');
   process.exit(1);
 }
-const end = source.indexOf('\n  },', start);
-const en = source.slice(start, end === -1 ? undefined : end);
-
-const found = PLACEHOLDERS.filter((text) => en.includes(`'${text}'`) || en.includes(`"${text}"`));
-
-if (found.length > 0) {
-  console.error('check-paywall-copy: the paywall still carries the template placeholder copy.\n');
-  for (const text of found) console.error(`  ${text}`);
-  console.error(
-    '\nThese are claims a paying user is owed. Replace feat1-feat4 in every locale with\n' +
-      'what THIS app actually does, and make sure each one is enforced somewhere in the code.\n' +
-      'A benefit nobody implemented is a refund request and a store-review problem.',
-  );
-  process.exit(1);
-}
-
-console.log('check-paywall-copy: paywall copy is app-specific');
+console.log('check-paywall-copy: the paywall describes this app, not the template.');

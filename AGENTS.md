@@ -2,16 +2,26 @@
 
 Read this before changing anything.
 
-**Portfolio rules take precedence over this file.** In order:
-`/Volumes/ExtremePro/Dev/AGENTS.md`, then
-`/Volumes/ExtremePro/Dev/docs/agents/18-app-lifecycle.md` (the phase order and
-its gates), then `/Volumes/ExtremePro/Dev/MOBILE-PLAYBOOK.md`. This app's plan
-section is in `/Volumes/ExtremePro/Dev/mobile_expo_apps/_shared/ADS-PLAN.md`.
+**This app inherits three layers, in order.** Later layers add detail; they
+never contradict an earlier one.
+
+1. `/Volumes/ExtremePro/Dev/AGENTS.md` — the portfolio manifest
+2. `/Volumes/ExtremePro/Dev/docs/agents/19-expo-app-standard.md` — the standard
+   every Expo app here meets, and why each rule exists.
+   Alongside it: `20-expo-shared-template.md` (how this app was generated and
+   how template drift is caught), `21-console-automation.md` (simulators,
+   emulators and the store consoles), `18-app-lifecycle.md` (phase order).
+3. This file.
+
+This app's plan section is in
+`/Volumes/ExtremePro/Dev/mobile_expo_apps/_shared/ADS-PLAN.md`.
 
 **Shared code is generated, not owned here.** Everything outside `src/logic/`
-and the game screens comes from `mobile_expo_apps/_shared` (`AltixCode/next-mobile-apps`) (`_template/` plus
-`apps.json`). Fix it there and re-run `node scripts/bootstrap.mjs rectap`,
-never in this copy — otherwise the next regeneration silently reverts it.
+and the game screens comes from `mobile_expo_apps/_shared` (`AltixCode/next-mobile-apps`).
+Fix it there, then re-render — `node scripts/bootstrap.mjs rectap` or
+`node scripts/check-drift.mjs --fix`. Editing the copy here means the next
+regeneration silently reverts it, and **a fix in the template does nothing for
+an app already generated** until something re-renders it.
 
 ## Non-negotiables
 

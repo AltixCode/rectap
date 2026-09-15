@@ -7,12 +7,43 @@
  *
  * Run: npm run check:release
  */
-import { missingReleaseConfigFrom, RELEASE_ENV_KEYS } from '../src/monetization/releaseConfig';
+import {
+  explainMalformed,
+  malformedReleaseConfigFrom,
+  missingReleaseConfigFrom,
+  RELEASE_ENV_KEYS,
+} from '../src/monetization/releaseConfig';
 
 const missing = missingReleaseConfigFrom(process.env);
 
+/*
+ * Shape is checked before absence is reported, because a malformed identifier
+ * is the more dangerous of the two by a wide margin. A missing one costs
+ * revenue; a malformed AdMob app id makes the Ads SDK abort on startup, so the
+ * app dies on its first frame — and it passes the missing-check, being present,
+ * non-blank and not a test value.
+ */
+const malformed = malformedReleaseConfigFrom(process.env);
+if (malformed.length > 0) {
+  console.error('\n✗ This build would crash on launch.\n');
+  for (const key of malformed) {
+    console.error(`    ${explainMalformed(key, process.env[key] as string)}`);
+  }
+  console.error(
+    [
+      '',
+      'An AdMob app id and an ad unit id differ only by "~" versus "/", and the',
+      'Google Mobile Ads SDK treats a malformed app id as a programming error:',
+      'it aborts, and the app dies on its first frame with nothing on screen.',
+      'Correct the value in the repository secret, not here.',
+      '',
+    ].join('\n'),
+  );
+  process.exit(1);
+}
+
 if (missing.length === 0) {
-  console.log(`✓ All ${RELEASE_ENV_KEYS.length} release identifiers are set.`);
+  console.log(`✓ All ${RELEASE_ENV_KEYS.length} release identifiers are set and well formed.`);
   process.exit(0);
 }
 

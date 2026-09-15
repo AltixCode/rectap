@@ -40,3 +40,71 @@ export function missingReleaseConfigFrom(env: Record<string, string | undefined>
     return value.startsWith(TEST_AD_UNIT_PREFIX);
   });
 }
+
+
+/**
+ * The shape each identifier must have.
+ *
+ * An AdMob *app* id and an ad *unit* id differ by a single character: the app
+ * id joins its two halves with `~`, the unit id with `/`. They are otherwise
+ * identical, they come from the same console, and they are trivially easy to
+ * paste into the wrong slot.
+ *
+ * Getting it wrong is not a degraded build. The Google Mobile Ads SDK treats a
+ * malformed application identifier as a programming error and deliberately
+ * aborts, so the app dies on its first frame with no UI and nothing on screen
+ * to say why — and `missingReleaseConfigFrom` waves it through, because the
+ * value is present, non-blank and not a test id.
+ *
+ * Nothing else here can catch it: the identifiers are injected only for
+ * release, so a Debug run on a simulator never sees them.
+ */
+const SHAPES: Record<string, { pattern: RegExp; describe: string }> = {
+  ADMOB_IOS_APP_ID: {
+    pattern: /^ca-app-pub-\d{10,}~\d{6,}$/,
+    describe: 'an AdMob app id, joined with "~" (not an ad unit id, which uses "/")',
+  },
+  ADMOB_ANDROID_APP_ID: {
+    pattern: /^ca-app-pub-\d{10,}~\d{6,}$/,
+    describe: 'an AdMob app id, joined with "~" (not an ad unit id, which uses "/")',
+  },
+  AD_UNIT: {
+    pattern: /^ca-app-pub-\d{10,}\/\d{6,}$/,
+    describe: 'an AdMob ad unit id, joined with "/" (not an app id, which uses "~")',
+  },
+  REVENUECAT: {
+    pattern: /^(appl|goog)_[A-Za-z0-9]{10,}$/,
+    describe: 'a RevenueCat public SDK key, starting appl_ or goog_',
+  },
+};
+
+function shapeFor(key: string): { pattern: RegExp; describe: string } | undefined {
+  if (SHAPES[key]) return SHAPES[key];
+  if (key.includes('REVENUECAT')) return SHAPES.REVENUECAT;
+  if (key.includes('ADMOB')) return SHAPES.AD_UNIT;
+  return undefined;
+}
+
+/** Explains why one identifier is the wrong shape, or null when it is fine. */
+export function explainMalformed(key: string, value: string): string | null {
+  const shape = shapeFor(key);
+  if (!shape || shape.pattern.test(value)) return null;
+  return `${key} is not ${shape.describe}`;
+}
+
+/**
+ * Names the identifiers that are present but the wrong shape.
+ *
+ * Absence is deliberately not reported here — that is
+ * `missingReleaseConfigFrom`'s job, and naming the same problem twice in two
+ * vocabularies sends whoever reads the failure looking for two problems.
+ */
+export function malformedReleaseConfigFrom(
+  env: Record<string, string | undefined>,
+): string[] {
+  return RELEASE_ENV_KEYS.filter((key) => {
+    const value = env[key];
+    if (!present(value)) return false;
+    return explainMalformed(key, value) !== null;
+  });
+}

@@ -42,8 +42,17 @@ const SK_AD_NETWORK_ITEMS = [
 const TRACKING_USAGE =
   'This lets us show you ads that are more relevant to you. Your data is never sold, and Rectap works exactly the same either way.';
 
-// Marketing version only. Build numbers live on EAS (appVersionSource: remote).
-const VERSION = '1.0.0';
+// Marketing version and build number.
+//
+// CI computes both from the commit count and passes them in, so a build is
+// traceable to a commit and every upload gets a build number App Store Connect
+// has not seen before. Locally they are absent and the defaults apply, which
+// keeps `expo start` and the bundle exports working with no environment set up.
+//
+// There is no app.json here to rewrite — this file *is* the manifest — so the
+// version cannot be bumped by editing JSON the way the older apps do it.
+const VERSION = process.env.APP_VERSION ?? '1.0.0';
+const BUILD = process.env.APP_BUILD ?? '1';
 
 const config: ExpoConfig = {
   name: 'Rectap',
@@ -58,6 +67,7 @@ const config: ExpoConfig = {
   assetBundlePatterns: ['**/*'],
   ios: {
     bundleIdentifier: 'com.altixcode.rectap',
+    buildNumber: BUILD,
     supportsTablet: true,
     requireFullScreen: false,
     config: {
@@ -69,6 +79,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.altixcode.rectap',
+    versionCode: Number.parseInt(BUILD, 10),
     adaptiveIcon: {
       backgroundColor: '#150A0D',
       foregroundImage: './assets/android-icon-foreground.png',

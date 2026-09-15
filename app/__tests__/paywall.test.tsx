@@ -109,3 +109,26 @@ describe('Paywall', () => {
     expect(getByText(t('adsDisclosure'))).toBeTruthy();
   });
 });
+
+describe('when the store has nothing to sell', () => {
+  it('says the store is unreachable rather than spinning forever', async () => {
+    usePremiumStore.setState({ lifetime: null, offeringsResolved: true, isPremium: false, isReady: true });
+    const { getByText, queryByText } = await renderWithProviders(<Paywall />);
+    expect(getByText(t('storeUnavailable'))).toBeTruthy();
+    expect(queryByText(t('loadingPrice'))).toBeNull();
+  });
+
+  it('still offers Restore, so a user who already paid is not stranded', async () => {
+    usePremiumStore.setState({ lifetime: null, offeringsResolved: true, isPremium: false, isReady: true });
+    const { getByText } = await renderWithProviders(<Paywall />);
+    expect(getByText(t('restorePurchases'))).toBeTruthy();
+  });
+
+  it('shows the spinner only while the lookup is genuinely still running', async () => {
+    usePremiumStore.setState({ lifetime: null, offeringsResolved: false, isPremium: false, isReady: true });
+    const { getByText, queryByText } = await renderWithProviders(<Paywall />);
+    expect(getByText(t('loadingPrice'))).toBeTruthy();
+    expect(queryByText(t('storeUnavailable'))).toBeNull();
+  });
+});
+

@@ -27,7 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.21.0
-          cache: npm
+          # No `cache: npm`. The action's save step tars the whole npm cache, and
+          # with several jobs on one self-hosted runner that exhausts the machine's
+          # system-wide file table — "Too many open files in system", which fails
+          # the run *after* every real step has already passed. The runner keeps
+          # ~/.npm between jobs anyway, so the cache bought nothing.
 
       - name: Install dependencies
         # A self-hosted macOS runner inherits a 256-descriptor limit from launchd,
@@ -39,6 +43,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: tsconfig still includes the generated route types
+        run: node scripts/check-tsconfig.mjs
 
       - name: Typecheck
         run: npm run typecheck
@@ -105,7 +112,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.21.0
-          cache: npm
+          # No `cache: npm`. The action's save step tars the whole npm cache, and
+          # with several jobs on one self-hosted runner that exhausts the machine's
+          # system-wide file table — "Too many open files in system", which fails
+          # the run *after* every real step has already passed. The runner keeps
+          # ~/.npm between jobs anyway, so the cache bought nothing.
       - run: |
           ulimit -n 8192 || true
           npm ci

@@ -11,6 +11,9 @@ step() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 step 'Lint'
 npm run lint
 
+step 'tsconfig still includes the generated route types'
+node scripts/check-tsconfig.mjs
+
 step 'TypeScript'
 npm run typecheck
 

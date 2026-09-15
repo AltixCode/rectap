@@ -10,9 +10,15 @@
 #   - An emulator and an Xcode build together exhaust this machine, and the
 #     symptom shows up on the NEXT app. The emulator is killed before Xcode runs.
 #
-# iOS ends at "builds, installs, launches, renders": Simulator.app is missing
-# from this Xcode install, so there is no window to click and the ATT prompt
-# cannot be dismissed. Interaction is driven on Android.
+# iOS used to end at "builds, installs, launches, renders", because Simulator.app
+# is missing from this Xcode install and there is no window to click. That is no
+# longer true: idb drives the simulator headlessly, including the ATT prompt,
+# which had never been exercised anywhere in this portfolio until it did.
+#   ../next-mobile-apps/scripts/idb-ui.py <udid> labels|find|tap
+# Tap by accessibility LABEL, not coordinate — idb takes points, which differ
+# between a phone and a 13" iPad, so a coordinate script needs rewriting per
+# device and a label script does not. Android has the same interface in
+# scripts/adb-ui.py.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

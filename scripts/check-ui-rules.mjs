@@ -54,6 +54,63 @@ const ALERT = /Alert\.alert\(\s*(["'])([^"']{3,})\1/g;
 const COLOUR = /(#[0-9a-fA-F]{3,8}\b|\brgba?\()/;
 const NATIVEWIND_NOOP = /className=["'][^"']*\b(space-[xy]-\d|bg-gradient-)/;
 
+/**
+ * A state expressed by dimming, on something the user can still tap.
+ *
+ * This defect has now been found in ten apps and in three different costumes:
+ * `opacity: unlocked ? 1 : 0.4`, `tone={used ? 'muted' : 'default'}`, and a
+ * colour picked to be faint. Every time, the one state the screen exists to
+ * communicate was rendered in the least legible way available -- a locked
+ * level at 2.65:1, a used scorecard row, a PRO badge at 2.19:1.
+ *
+ * A locked row is not a disabled control. It is something you can buy, and
+ * tapping it opens the paywall, so it is information and must meet 4.5:1. The
+ * state belongs in a lock icon, a badge or a label at full contrast.
+ *
+ * Only *conditional* dimming is flagged: a constant `opacity: 0.6` on a
+ * decorative element is not a state, and a genuinely disabled control keeps
+ * its dimming -- that is what `disabled` means and it is exempted below.
+ */
+/*
+ * The signature is one state at FULL opacity and the sibling state dimmed below
+ * 0.6. Both halves of that are load-bearing, and both came from measuring real
+ * screens rather than from taste:
+ *
+ *   - `1` on one branch is what makes the dim *relative* — a state rendered
+ *     fainter than the state beside it. klondo's empty-slot placeholder is
+ *     `slot ? 0.5 : 0`: faint versus invisible, a drop-target hint with no text
+ *     and no gated content, and not this defect.
+ *   - 0.6 is where it starts to matter. memoflip dims a matched card to 0.7 and
+ *     its symbol still measures 7.56:1, because the text and its own card fill
+ *     dim together toward the same screen colour. At 0.55 the same arithmetic
+ *     gives 4.39:1, at 0.5 gives 3.72:1, and at 0.4 gives 2.61:1.
+ */
+const CONDITIONAL_DIM =
+  /opacity:\s*[^,;}]*\?\s*(?:1\s*:\s*0?\.([0-5])|0?\.([0-5])\d*\s*:\s*1)/;
+/*
+ * Two exemptions, both found by running this against real screens rather than
+ * by reasoning about it. `pressed ? 0.7 : 1` is press feedback and was five of
+ * the first seven hits -- the commonest legitimate conditional opacity in React
+ * Native. A genuinely `disabled` control keeps its dimming; that is what
+ * disabled means.
+ */
+const EXEMPT_DIM = /\b(isDisabled|disabled|pressed|focused|hovered)\b/;
+
+/*
+ * There is deliberately no rule for `tone={x ? 'muted' : 'default'}`.
+ *
+ * The first version of this file had one, and its very first hit was a correct
+ * segmented control: the `muted` token measures 5.91:1 light and 7.59:1 dark on
+ * its own, comfortably past AA. The token is *designed* to pass. What made
+ * dicewit's used-row bad was that the muted tone was the sole marker of a state
+ * the screen exists to communicate -- and no regex can see "sole marker".
+ *
+ * A check that flags correct code sends people to repaint working screens, so
+ * it is worse than no check. Opacity is different and is flagged below: it
+ * multiplies whatever contrast the token had, so it can only ever make things
+ * worse.
+ */
+
 for (const file of files) {
   const relative = path.relative(root, file);
   const source = fs.readFileSync(file, 'utf8');
@@ -68,6 +125,15 @@ for (const file of files) {
     }
     if (NATIVEWIND_NOOP.test(code)) {
       report(file, n, 'NativeWind class that is a no-op in React Native');
+    }
+    if (CONDITIONAL_DIM.test(code) && !EXEMPT_DIM.test(code)) {
+      report(
+        file,
+        n,
+        'a state shown by dimming — a locked or used row is information, not a ' +
+          'disabled control, so it must stay at full contrast and carry its ' +
+          'state in a lock icon, a badge or a label',
+      );
     }
 
     const patterns = file.endsWith('.tsx')

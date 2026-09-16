@@ -39,18 +39,32 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
-  // On a tablet the capped column leaves most of the display empty below the
-  // content, which reads as a phone screen pinned to the top of a big one.
-  // Centring it costs nothing when the content is taller than the viewport,
-  // because flexGrow only has slack to distribute when there is slack.
   const isTablet = width >= 700;
-  const fill = isTablet ? { flexGrow: 1, justifyContent: 'center' as const } : null;
 
-  // A tablet is not a big phone. Left to fill, a row of body text runs the
-  // whole 13" width and the eye loses the start of the next line; the measure
-  // below is the same one a reading column uses, centred, with the scroll view
-  // itself still full-bleed so the scrollbar stays at the edge.
-  const column = { width: '100%' as const, maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' as const };
+  // Do NOT centre the content vertically on a tablet.
+  //
+  // `justifyContent: 'center'` only has slack when the content is shorter than
+  // the viewport -- which on a 13" iPad is most screens. The result is a phone's
+  // worth of interface floating in the middle of a large display with dead space
+  // above and below it, which is exactly what Ata described on seeing one:
+  // "one iphone app streched on sitting in the middle with lots of empty space".
+  // Content starts at the top, like every other screen the reader has used.
+  const fill = null;
+
+  // The column widens on a tablet instead of staying at the phone measure.
+  //
+  // 640pt inside 1032pt is a strip down the middle with margins wider than most
+  // phones. A reading measure is the right instinct for prose and the wrong one
+  // for an interface made of cards, rows and controls, which is what these
+  // screens are. The cap still exists so a 13" landscape screen does not run a
+  // single row of text the whole way across.
+  const column = {
+    width: '100%' as const,
+    maxWidth: isTablet
+      ? Math.min(width - spacing.xl * 2, TABLET_MAX_WIDTH)
+      : CONTENT_MAX_WIDTH,
+    alignSelf: 'center' as const,
+  };
 
   const padding = {
     paddingHorizontal: padded ? spacing.base : 0,
@@ -83,7 +97,13 @@ export function Screen({
   );
 }
 
-/** The widest a content column gets, in points. Below this nothing changes. */
+/** The widest a content column gets on a phone, in points. Never binds: the
+ *  widest phone is 440pt. */
 const CONTENT_MAX_WIDTH = 640;
+
+/** The widest it gets on a tablet. 1032pt (13" portrait) less two xl gutters is
+ *  984, so this binds only on a landscape 13" and leaves the portrait case using
+ *  the screen it is on. */
+const TABLET_MAX_WIDTH = 920;
 
 const styles = StyleSheet.create({ flex: { flex: 1 } });

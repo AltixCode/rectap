@@ -27,18 +27,49 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
  * a paywall no gate could read, reported as nothing at all. So fall back to
  * the screen itself and match on the sentences rather than the keys.
  */
+/*
+ * Every source is read, not the first one that exists.
+ *
+ * This returned on the first match, and gridhabit is the app that shows why
+ * that is wrong: it has an `app/paywall.tsx`, so the search stopped there --
+ * while its actual claims ("Unlock unlimited habits, no ads, and everything
+ * else -- forever", "Export your full history as CSV or JSON") live in
+ * `src/monetization/entitlements.ts` and reach the screen through
+ * `{paywallReasonFor(reason)}`. The gate read the file the claims were not in,
+ * found nothing to object to, and passed.
+ *
+ * Claims are not required to live in one place, so asking "which file holds
+ * them" is the wrong question. Read them all and concatenate.
+ */
 function paywallSource() {
-  const keyed = resolve(ROOT, 'src/i18n/index.ts');
-  if (existsSync(keyed)) {
-    const source = readFileSync(keyed, 'utf8');
+  const parts = [];
+  let keyed = false;
+
+  const i18n = resolve(ROOT, 'src/i18n/index.ts');
+  if (existsSync(i18n)) {
+    const source = readFileSync(i18n, 'utf8');
     // The English block is the one an author edits; the rest follow from it.
-    return { text: source.split('  en: {')[1]?.split('\n  es: {')[0] ?? '', keyed: true };
+    const en = source.split('  en: {')[1]?.split('\n  es: {')[0] ?? '';
+    if (en) {
+      parts.push(en);
+      keyed = true;
+    }
   }
-  for (const rel of ['app/paywall.tsx', 'src/screens/PaywallScreen.tsx']) {
+
+  for (const rel of [
+    'app/paywall.tsx',
+    'src/screens/PaywallScreen.tsx',
+    // A helper that builds the sentences is still the paywall's copy, and it is
+    // invisible to check-ui-rules as well: that gate only matches literals
+    // written at the call site, never one arriving via `{someHelper(x)}`.
+    'src/monetization/entitlements.ts',
+  ]) {
     const file = resolve(ROOT, rel);
-    if (existsSync(file)) return { text: readFileSync(file, 'utf8'), keyed: false };
+    if (existsSync(file)) parts.push(readFileSync(file, 'utf8'));
   }
-  return null;
+
+  if (parts.length === 0) return null;
+  return { text: parts.join('\n'), keyed };
 }
 
 const found_source = paywallSource();

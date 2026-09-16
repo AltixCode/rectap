@@ -37,6 +37,14 @@ export function BannerAdSlot() {
   return (
     <View
       style={{
+      // flexShrink: 0 so the banner can never be squeezed by a sibling that
+      // sizes itself to its content. Ata saw this on an iPad: "some of the ui
+      // elements are hidden behind the admob". The scroll view above had no
+      // flex of its own, so it grew to its content height and the two fought
+      // over the bottom of the screen. The scroll views were given flex: 1;
+      // this is the other half, and it makes the outcome independent of what
+      // any sibling does.
+        flexShrink: 0,
         alignItems: 'center',
         backgroundColor: colors.background,
         borderTopWidth: loaded ? 1 : 0,

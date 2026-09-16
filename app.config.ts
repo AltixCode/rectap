@@ -141,7 +141,27 @@ const config: ExpoConfig = {
       'expo-build-properties',
       {
         ios: { deploymentTarget: '16.4' },
-        android: { compileSdkVersion: 36, targetSdkVersion: 36, minSdkVersion: 24 },
+        android: {
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+          minSdkVersion: 24,
+          // Two architectures, not Expo's default four.
+          //
+          // x86 and x86_64 are emulator targets -- nothing in the Play device
+          // population runs them. Building all four compiles every native
+          // module four times over, and the peak memory that produces is what
+          // killed the Gradle daemon on the CI runner: mergewit, multitick,
+          // poursort, ratherly and rectap all died at the same step with
+          // `DaemonDisappearedException`, which reads as a crash rather than as
+          // the out-of-memory kill it actually is.
+          //
+          // The template has carried this for a while; no generated app had it,
+          // which is why the whole portfolio failed the same way at once.
+          //
+          // The cost is that the app cannot install on x86 Android -- some
+          // Chromebooks and a few uncommon tablets. Reversible in one line.
+          buildArchs: ['arm64-v8a', 'armeabi-v7a'],
+        },
       },
     ],
   ],

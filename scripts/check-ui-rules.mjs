@@ -147,7 +147,23 @@ for (const file of files) {
     if (NATIVEWIND_NOOP.test(code)) {
       report(file, n, 'NativeWind class that is a no-op in React Native');
     }
-    if (CONDITIONAL_DIM.test(code) && !EXEMPT_DIM.test(code)) {
+    // Look at the ELEMENT, not the line.
+    //
+    // `disabled={...}` and `opacity:` are almost never on the same line -- the
+    // prop sits in the JSX attributes and the opacity inside a `style` object a
+    // few lines below. Line-scoped, this rule reported all three of signpure's
+    // pagination and save buttons, every one of which is a genuinely disabled
+    // control with `disabled` set four lines above. Three false positives in one
+    // file is how a gate gets switched off, and a gate switched off is worse
+    // than a gate that misses something.
+    //
+    // A ten-line lookback covers a JSX element's attribute block without
+    // reaching the next sibling. It can be fooled by a genuinely locked row
+    // placed just after an unrelated disabled control; that is the trade, and it
+    // errs toward the false negative, which check-i18n and a human reading the
+    // screenshot can still catch.
+    const nearby = lines.slice(Math.max(0, n - 10), n + 2).join('\n');
+    if (CONDITIONAL_DIM.test(code) && !EXEMPT_DIM.test(nearby)) {
       report(
         file,
         n,

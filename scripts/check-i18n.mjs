@@ -17,7 +17,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = fs.readFileSync(path.join(root, 'src/i18n/index.ts'), 'utf8');
 
 const blocks = {};
-const blockRe = /^ {2}([a-z]{2}): \{$/gm;
+// Quoted OR unquoted locale keys. This required `  en: {` and a dozen apps --
+// netpulse, packpixel, redactpro, scribezero, signpure, storychop and the rest
+// of the non-game half -- write `  "en": {`. On those the gate found no blocks,
+// said "could not read the English block" and exited 1, which is why nobody
+// simply added it to them: it looked broken rather than mis-tuned. The same
+// assumption was in add-i18n-keys.mjs and had silently disabled that tool for
+// 31 apps.
+const blockRe = /^ {2}"?([a-z]{2})"?: \{$/gm;
 let match;
 const starts = [];
 while ((match = blockRe.exec(source))) starts.push({ lang: match[1], index: match.index });
@@ -26,7 +33,7 @@ starts.forEach(({ lang, index }, i) => {
   const end = i + 1 < starts.length ? starts[i + 1].index : source.indexOf('\n} as const;');
   const body = source.slice(index, end);
   const keys = new Set();
-  for (const m of body.matchAll(/^ {4}([A-Za-z0-9_]+):/gm)) keys.add(m[1]);
+  for (const m of body.matchAll(/^ {4}"?([A-Za-z0-9_]+)"?:/gm)) keys.add(m[1]);
   blocks[lang] = keys;
 });
 

@@ -93,7 +93,16 @@ const config: ExpoConfig = {
       // export-compliance questionnaire on every App Store Connect submission.
       usesNonExemptEncryption: false,
     },
-    infoPlist: { UIBackgroundModes: [] },
+    infoPlist: {
+      // Answers Apple's export-compliance question once, in the build, so it
+      // is not asked again on every submission of every app. These apps use
+      // only the standard HTTPS the OS provides -- RevenueCat and AdMob over
+      // TLS -- and ship no cryptography of their own, which is the exemption
+      // this declares. Without the key App Store Connect asks at upload time,
+      // and the answer carries legal weight rather than being a formality.
+      ITSAppUsesNonExemptEncryption: false,
+      UIBackgroundModes: [],
+    },
   },
   android: {
     package: 'com.altixcode.rectap',

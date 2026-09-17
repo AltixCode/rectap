@@ -123,3 +123,55 @@ export const elevation = {
   card: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   sheet: { shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 28, shadowOffset: { width: 0, height: -6 }, elevation: 12 },
 } as const;
+
+export type ScaledSpacing = Record<keyof typeof spacing, number>;
+export type ScaledTypography = Record<keyof typeof typography, (typeof typography)[keyof typeof typography]>;
+
+/**
+ * A tablet is not a big phone, and the tokens were written for a phone.
+ *
+ * At phone sizes these numbers are right and are left exactly alone. On a 13"
+ * iPad the same 16pt body text and 16pt gutters produce a screen that is
+ * legibly a phone layout being displayed at a distance -- the interface ends
+ * around 60% of the way down and the rest is background. Scaling the rhythm
+ * rather than stretching the layout is what closes that gap: the content is
+ * unchanged, it simply occupies the display it was given.
+ *
+ * Deliberately modest, and deliberately different per axis. Space grows faster
+ * than type (1.25 against 1.15) because the dead area is vertical, and type
+ * that grows as fast as its gutters just reproduces the phone screen one size
+ * up. Line heights scale with their font size so the ratio is preserved.
+ *
+ * MIN_TOUCH_TARGET is NOT scaled. 44pt is an Apple HIG floor about fingers,
+ * which are the same size on both devices; scaling it would be cargo-culting
+ * the multiplier onto a number that does not mean what the others mean.
+ */
+export const TABLET_MIN_WIDTH = 700;
+const TABLET_SPACE_SCALE = 1.25;
+const TABLET_TYPE_SCALE = 1.15;
+
+export function scaleSpacing(isTablet: boolean): ScaledSpacing {
+  if (!isTablet) return spacing;
+  return Object.fromEntries(
+    Object.entries(spacing).map(([key, value]) => [key, Math.round(value * TABLET_SPACE_SCALE)]),
+  ) as ScaledSpacing;
+}
+
+export function scaleTypography(isTablet: boolean): ScaledTypography {
+  if (!isTablet) return typography;
+  return Object.fromEntries(
+    Object.entries(typography).map(([key, style]) => [
+      key,
+      // The line height is derived from the *rounded* font size, not scaled
+      // independently. Rounding both against the raw multiplier lets them land
+      // on opposite sides -- body went 16/24 to 18/28, turning a 1.5 ratio into
+      // 1.56 and loosening the leading of every paragraph in the app.
+      ((scaledFontSize) => ({
+        ...style,
+        fontSize: scaledFontSize,
+        lineHeight: Math.round(scaledFontSize * (style.lineHeight / style.fontSize)),
+      }))(Math.round(style.fontSize * TABLET_TYPE_SCALE)),
+    ]),
+  ) as ScaledTypography;
+}
+

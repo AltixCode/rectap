@@ -5,7 +5,7 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 
-import { PRO_ENTITLEMENT, selectLifetime, type PlanLike } from './entitlements';
+import { PRO_ENTITLEMENT, isCaptureMode, selectLifetime, type PlanLike } from './entitlements';
 import { isPurchasesConfigured, revenueCatApiKey } from './config';
 
 /**
@@ -80,11 +80,51 @@ function periodUnitOf(period: string): string | null {
  * Returning a single package rather than a list is deliberate: it makes a subscription that
  * somehow reached the offering unrenderable instead of merely discouraged.
  */
+/**
+ * The package a store screenshot shows when the simulator has no store.
+ *
+ * A StoreKit configuration cannot reach this pipeline. Xcode applies one by
+ * syncing it to the device as part of running a scheme --
+ * `-[DVTDevice handleStoreKitConfigurationSyncForBundleID:configurationFilePath:]`
+ * -- and `xcrun simctl` has no equivalent, so an `expo run:ios` plus
+ * `simctl launch` build never receives a product catalogue however correct its
+ * .storekit file is. The paywall then renders its unavailable state, and the
+ * IAP review screenshot Apple sees says "The store is not reachable right now"
+ * where the buy button belongs. Several live ones do.
+ *
+ * So capture mode supplies the price from the build instead. The figure comes
+ * from `scripts/iap.json`, which is read out of the App Store Connect price
+ * schedule, so the screenshot states this product's real cost -- it simply
+ * learns it from the bundle rather than from StoreKit.
+ *
+ * `__DEV__` is what makes this safe: it is false in every release build, so
+ * this is inert in anything that ships no matter how the environment is set.
+ */
+function capturePriceFallback(): PurchasesPackage | null {
+  const price = process.env.EXPO_PUBLIC_CAPTURE_PRICE;
+  if (!isCaptureMode() || !price) return null;
+  const amount = Number(price.replace(/[^0-9.]/g, '')) || 0;
+  // Shaped like a package for display only. Nothing purchases it: a capture
+  // route is forbidden from tapping a purchase button, and a release build
+  // never reaches this line.
+  return {
+    identifier: 'lifetime',
+    packageType: 'LIFETIME',
+    offeringIdentifier: 'capture',
+    product: {
+      identifier: 'capture.lifetime',
+      priceString: price.startsWith('$') ? price : `$${price}`,
+      price: amount,
+      currencyCode: 'USD',
+    },
+  } as unknown as PurchasesPackage;
+}
+
 export function lifetimePackage(offering: PurchasesOffering | null): PurchasesPackage | null {
-  if (!offering) return null;
+  if (!offering) return capturePriceFallback();
   const byId = new Map(offering.availablePackages.map((p) => [p.identifier, p]));
   const plan = selectLifetime(offering.availablePackages.map(toPlanLike));
-  return plan ? (byId.get(plan.identifier) ?? null) : null;
+  return plan ? (byId.get(plan.identifier) ?? null) : capturePriceFallback();
 }
 
 export interface PurchaseResult {

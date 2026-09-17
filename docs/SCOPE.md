@@ -1,8 +1,20 @@
-# Rectap — why this app is not built, and what the options are
+# Rectap — the scope decision, and what was built instead
 
-**Status: deliberately unbuilt. It is the one app in the eighteen that cannot be
-shipped honestly on the stack the portfolio uses, and the decision about what to
-do with the slot belongs to the owner.**
+**Status: built, as option 3 below. This document is kept because its analysis
+is still correct — it is why the app is shaped the way it is, and why three of
+the four original paid claims were cut rather than implemented.**
+
+> **Resolved 2026-09-17.** Option 3 was taken: a native Expo module with a real
+> ReplayKit Broadcast Upload Extension on iOS (`plugins/withBroadcastExtension.js`,
+> `plugins/broadcast/SampleHandler.swift`) and a real `MediaProjection`
+> foreground service on Android — no `react-native-record-screen`, no
+> `RPScreenRecorder`. The paid claims were reduced to the two that are true: the
+> ads go, and the free tier's 3-minute recording cap goes. Watermarking, 1080p/60
+> and trimming were **cut**, not implemented and not claimed. Section 3 below
+> explains why, and it still stands.
+>
+> What the analysis got right and this build does not change: **none of this is
+> verifiable on a simulator.** See `HANDOFF.md`.
 
 Everything below is a platform constraint, not a preference.
 
@@ -66,7 +78,7 @@ Both platforms ship a system screen recorder, on every device, with no ad and no
 watermark. An app charging for a worse one invites exactly the review Apple
 writes: minimum functionality.
 
-## The options
+## The options as they stood (option 3 was taken)
 
 1. **Drop the slot.** Nineteen shipped apps, no dishonest one. Nothing is lost
    but the number — no store record exists for Rectap, so nothing has to be
@@ -85,8 +97,13 @@ screen, or one with the paid rows greyed out and the copy left standing. Store
 enforcement is account-level — one deceptive app can take all nineteen others
 with it.
 
-## If option 2 or 3 is chosen
+## What option 3 actually cost
 
-The scaffold here is complete and current: 14 locales, theming, paywall, ads
-behind UMP consent, every device-free gate passing. Only `src/logic/` and the
-screens are missing, which is exactly where a new concept would go.
+Not weeks in the end, because the hard part — the config plugin that creates an
+app-extension target `expo prebuild` will not generate — was written once and
+sits in `plugins/withBroadcastExtension.js`. What it did cost is the part this
+document predicted: **there is no way to verify any of it here.** The recorder
+builds, installs, launches and renders on the simulator, and records nothing,
+because a simulator has no broadcast infrastructure at all. Every recording gate
+in `HANDOFF.md` is `UNKNOWN` and stays that way until someone runs it on a
+physical device.

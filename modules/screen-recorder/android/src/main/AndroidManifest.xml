@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!--
+    MediaProjection keeps recording while the app is in the background — which is the
+    entire point — and Android only allows that from a foreground service. Since
+    Android 14 the service must additionally declare the mediaProjection type, and the
+    projection may only be acquired *after* the service is in the foreground.
+  -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+  <!--
+    Android 13+ hides the foreground-service notification without this, and a
+    MediaProjection with no visible notification is stopped by the system.
+  -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <application>
+    <service
+      android:name=".ScreenRecordingService"
+      android:exported="false"
+      android:foregroundServiceType="mediaProjection" />
+  </application>
+</manifest>

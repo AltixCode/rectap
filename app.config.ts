@@ -127,6 +127,9 @@ const config: ExpoConfig = {
     // iOS 26+ refuses to launch apps that have not adopted the UIScene lifecycle, which
     // Expo SDK 57 / RN 0.86 do not yet generate. Drop this once the template does it itself.
     './plugins/withUIScene',
+    // Adds the ReplayKit broadcast upload extension — the only public iOS API that can
+    // record the whole device rather than just this app's own UI. See the plugin.
+    './plugins/withBroadcastExtension',
     [
       'expo-splash-screen',
       {

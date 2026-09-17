@@ -3,22 +3,27 @@
 | Stage | State |
 |---|---|
 | Repo bootstrapped | ✅ |
-| Game logic | ⛔ see `SCOPE.md` |
-| UI | ⛔ see `SCOPE.md` |
+| Recorder logic (`src/logic`, `src/recorder`) | ✅ |
+| Native module (iOS broadcast extension, Android MediaProjection) | ✅ built, ⬜ never run on hardware |
+| UI (home, recordings, settings, paywall) | ✅ |
 | RevenueCat catalog | ⬜ |
 | AdMob app + units | ⬜ |
 | App Store Connect record | ⬜ |
 | Play Console record | ⬜ |
-| iOS simulator QA | ⬜ |
-| Android emulator QA | ⬜ |
+| iOS simulator QA | ✅ builds, installs, launches, renders — recording itself is unverifiable there |
+| Android emulator QA | ⬜ never built |
 | Submitted | ⬜ |
 
-**Deliberately unbuilt.** The app as specified cannot be delivered honestly
-on this stack; `docs/SCOPE.md` sets out why and what the three options are.
-This is a decision for the owner, not a task that is pending.
+**Option 3 of `SCOPE.md` was taken**: the app was built properly, with a real
+ReplayKit Broadcast Upload Extension on iOS and a real MediaProjection
+foreground service on Android, and the paid claims were cut down to the two that
+are true (no ads, no 3-minute cap).
 
-`npm run verify` fails here on purpose, at `check-paywall-copy`. The paywall
-still carries the template's placeholder claims because there are no features
-to describe. **The fix is not to write copy** — that would be inventing claims
-for an app that does not exist. It is the gate correctly refusing a scaffold,
-and it stays red until the slot is either dropped or given a real concept.
+`npm run verify` now passes in full, `check-paywall-copy` included. What it does
+**not** prove is that anything has ever been recorded: a simulator has no
+ReplayKit broadcast infrastructure, so the capture path is still entirely
+unexercised. `HANDOFF.md` lists every gate that is still `UNKNOWN` and what a
+human has to do on a device to close them.
+
+`npm run check:release` fails, correctly: no AdMob or RevenueCat identifiers
+have been provisioned for this app yet.

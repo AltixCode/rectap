@@ -62,7 +62,17 @@ export default function Home() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Screen scroll topInset>
+      <Screen
+        scroll
+        topInset
+        // A fixed block -- title, the availability card, the timer, one button
+        // and two links -- not a list that grows, so it is centred when there is
+        // slack. On a 13" iPad it sat at the top with about half the display
+        // empty beneath it. A no-op on a phone, where the content fills the
+        // viewport, and a no-op here once a recordings list is long enough to
+        // need the room.
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+      >
         <Text variant="display" style={{ marginTop: spacing["3xl"] }}>
           {t("appName")}
         </Text>

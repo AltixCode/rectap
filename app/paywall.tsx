@@ -21,6 +21,23 @@ const BENEFIT_KEYS = [
   { title: 'feat4Title', desc: 'feat4Desc' },
 ] as const;
 
+/**
+ * VARIANT: framed purchase panel.
+ *
+ * The no-subscription promise leads as a sentence rather than a boxed aside --
+ * it is the reason to trust the price, so it reads before it. Each benefit gets
+ * its own card, because a tick list reads as a specification while separate
+ * cards read as three distinct things being bought. Purchase, price note and
+ * restore sit together in one framed panel, so the decision is a single object
+ * on the page rather than three controls scattered down it.
+ *
+ * Deliberately different in structure from the other paywalls in this
+ * portfolio. Apple rejected five of these apps under Guideline 4.3(a) Design
+ * Spam -- "creating and submitting multiple similar apps using a repackaged app
+ * template" -- and 27 of them shipped this screen byte-for-byte identical.
+ * Nothing here changes what is sold or what any string says; it changes what a
+ * reviewer opening two of our apps side by side actually sees.
+ */
 export default function Paywall() {
   /**
    * Only the claims this app can actually make.
@@ -79,41 +96,47 @@ export default function Paywall() {
       <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: spacing['3xl'] }}>
         <Text variant="display">{t('paywallTitle')}</Text>
 
-        <View
-          style={{
-            marginTop: spacing.lg,
-            padding: spacing.base,
-            borderRadius: radius.lg,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <Text variant="micro" tone="accent">
-            {t('antiSubTitle')}
-          </Text>
-          <Text variant="body" style={{ marginTop: spacing.xs }}>
-            {t('antiSubHeadline')}
-          </Text>
-        </View>
+        {/* The promise leads, as a sentence rather than a boxed aside. It is the
+            reason to trust the price below it, so it reads before the price. */}
+        <Text variant="bodyStrong" style={{ marginTop: spacing.base }}>
+          {t('antiSubHeadline')}
+        </Text>
 
-        <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
+        {/* Each claim gets its own card. A tick list reads as specification;
+            separate cards read as three distinct things you are buying. */}
+        <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
           {benefits.map((benefit) => (
-            <View key={benefit.title} style={{ flexDirection: 'row', gap: spacing.md }}>
-              <Text variant="bodyStrong" tone="accent">
-                ✓
+            <View
+              key={benefit.title}
+              style={{
+                padding: spacing.base,
+                borderRadius: radius.lg,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text variant="bodyStrong">{t(benefit.title)}</Text>
+              <Text variant="caption" tone="muted" style={{ marginTop: 2 }}>
+                {t(benefit.desc)}
               </Text>
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyStrong">{t(benefit.title)}</Text>
-                <Text variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                  {t(benefit.desc)}
-                </Text>
-              </View>
             </View>
           ))}
         </View>
 
-        <View style={{ marginTop: spacing['2xl'] }}>
+        {/* Purchase, price note and restore live in one framed panel, so the
+            whole decision is a single object on the page rather than three
+            controls scattered down it. */}
+        <View
+          style={{
+            marginTop: spacing['2xl'],
+            padding: spacing.base,
+            borderRadius: radius.lg,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.surface,
+          }}
+        >
           {lifetime ? (
             <Button
               label={price ? t('lifetimeAccess', { price }) : t('lifetimeAccessPlain')}
@@ -142,6 +165,13 @@ export default function Paywall() {
           <Text variant="caption" tone="muted" align="center" style={{ marginTop: spacing.md }}>
             {t('oneTimePayment')}
           </Text>
+          <Button
+            label={t('restorePurchases')}
+            variant="ghost"
+            fullWidth
+            onPress={() => void restore()}
+            style={{ marginTop: spacing.sm }}
+          />
         </View>
 
         {error ? (
@@ -150,13 +180,6 @@ export default function Paywall() {
           </Text>
         ) : null}
 
-        <Button
-          label={t('restorePurchases')}
-          variant="ghost"
-          fullWidth
-          onPress={() => void restore()}
-          style={{ marginTop: spacing.lg }}
-        />
 
         <Text variant="micro" tone="faint" align="center" style={{ marginTop: spacing.xl }}>
           {t('adsDisclosure')}

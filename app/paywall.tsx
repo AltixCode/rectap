@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,6 +66,12 @@ export default function Paywall() {
   const error = usePremiumStore((s) => s.error);
   const purchase = usePremiumStore((s) => s.purchase);
   const restore = usePremiumStore((s) => s.restore);
+  // A restore that finds nothing must SAY so.
+  // `restore()` returned 'none' and the screen rendered nothing at all, so
+  // the button read as broken -- and App Review taps Restore on every
+  // submission. The string already existed in all fourteen locales; it was
+  // simply never shown on this paywall shape.
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
   const refreshOfferings = usePremiumStore((s) => s.refreshOfferings);
 
   useEffect(() => {
@@ -171,7 +177,12 @@ export default function Paywall() {
             label={t('restorePurchases')}
             variant="ghost"
             fullWidth
-            onPress={() => void restore()}
+            onPress={() => {
+            setRestoreNotice(null);
+            void restore().then((outcome) => {
+              if (outcome === 'none') setRestoreNotice(t('noPriorPurchases'));
+            });
+          }}
             style={{ marginTop: spacing.sm }}
           />
         </View>
@@ -179,6 +190,18 @@ export default function Paywall() {
         {error ? (
           <Text variant="caption" tone="danger" align="center" style={{ marginTop: spacing.base }}>
             {error}
+          </Text>
+        ) : null}
+
+        {restoreNotice ? (
+          <Text
+            accessibilityRole="alert"
+            variant="caption"
+            tone="muted"
+            align="center"
+            style={{ marginTop: spacing.base }}
+          >
+            {restoreNotice}
           </Text>
         ) : null}
 

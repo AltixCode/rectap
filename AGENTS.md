@@ -29,25 +29,35 @@ an app already generated** until something re-renders it.
    not exist — in code, in the UI, in store metadata, or in a status report.
    Store enforcement is account-level: one deceptive app can take the whole
    portfolio down.
-2. **A build is not a verification.** `tsc`, `expo export` and `xcodebuild` all
+2. **A store screenshot is reviewed by a human, so look at it.** No frame
+   whose status bar reads `◀ OtherApp` ever reaches a listing — it tells a
+   reviewer this app was captured by switching out of another of ours, which on
+   a portfolio already rejected under 4.3(a) Design Spam is evidence for the
+   accusation. One reached a live iPad listing. Every other gate treats the
+   status bar as chrome and excludes it, so run
+   `scripts/shotcheck/check-shot-backlink.py` on every frame, read all of its
+   output, then open the image. Also disqualifying: an on-screen keyboard, an
+   empty form field, a system alert, a LogBox toast, or an IAP frame whose buy
+   button carries no price.
+3. **A build is not a verification.** `tsc`, `expo export` and `xcodebuild` all
    pass on an app that dies before its first frame. Proof is the artifact.
    Unverified is `UNKNOWN` in `HANDOFF.md`, never a pass.
-3. **TDD.** Write the failing test first, watch it fail, then write the code.
-4. **`src/logic/` imports nothing from `react`, `react-native` or `expo-*`.**
+4. **TDD.** Write the failing test first, watch it fail, then write the code.
+5. **`src/logic/` imports nothing from `react`, `react-native` or `expo-*`.**
    That is what lets the rules be iterated on from `npm test` alone.
-5. **Every user-facing string goes through `t()`** — errors, empty states,
+6. **Every user-facing string goes through `t()`** — errors, empty states,
    alerts, accessibility labels and paywall copy included. Fourteen locales;
    `ar` and `fa` must actually lay out RTL. `npm run check:i18n` and
    `npm run check:ui` are the hard stops.
-6. **No colour literal outside `src/theme/`.** Both themes are designed, and
+7. **No colour literal outside `src/theme/`.** Both themes are designed, and
    both are checked for AA contrast by a unit test.
-7. **One purchase, never a subscription.** A lifetime non-consumable grants the
+8. **One purchase, never a subscription.** A lifetime non-consumable grants the
    `remove_ads` entitlement, which removes the ads *and* unlocks everything.
-8. **Ads fail closed.** No UMP consent means no ad request — an ad request made
+9. **Ads fail closed.** No UMP consent means no ad request — an ad request made
    for an EEA user who never saw a form is what gets an AdMob account suspended.
-9. **No secret in the repo.** A build without identifiers runs free and ad-free
+10. **No secret in the repo.** A build without identifiers runs free and ad-free
    rather than crashing; `npm run check:release` is what stops that shipping.
-10. **Never hand-edit `ios/` or `android/`** — `expo prebuild` regenerates them.
+11. **Never hand-edit `ios/` or `android/`** — `expo prebuild` regenerates them.
     Native changes go in an Expo config plugin.
 
 ## Commands

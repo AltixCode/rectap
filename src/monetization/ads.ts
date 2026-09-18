@@ -14,6 +14,7 @@ import {
   type ConsentInfoLike,
   type ConsentSummary,
 } from '@/monetization/consentPolicy';
+import { isCaptureMode } from '@/monetization/entitlements';
 import { useAdsConsentStore } from '@/store/useAdsConsentStore';
 
 /**
@@ -86,6 +87,10 @@ export async function showPrivacyOptionsForm(): Promise<boolean> {
 /** Requests ATT on iOS. Returns true when the user granted tracking. */
 export async function requestTrackingPermission(): Promise<boolean> {
   if (Platform.OS !== 'ios') return true;
+  // simctl has no privacy-grant service for ATT (unlike camera/photos/microphone), so this
+  // system prompt is otherwise unavoidable during automated screenshot capture -- it covers
+  // the app full-screen and discards every frame taken while it's up.
+  if (isCaptureMode()) return false;
   try {
     const current = await getTrackingPermissionsAsync();
     if (!current.canAskAgain) return current.granted;

@@ -131,3 +131,32 @@ describe('bootstrapAds', () => {
     expect(calls).toEqual(['gatherConsent']);
   });
 });
+
+/**
+ * simctl has no privacy-grant service for ATT (unlike camera/photos/microphone), so the
+ * system prompt is unavoidable during automated screenshot capture -- it covers the app
+ * full-screen and collapses the accessibility tree, discarding every frame taken while
+ * it's up. See entitlements.ts's isCaptureMode for why __DEV__ is what makes this safe to
+ * skip: it is inert in anything that ships, no matter how the environment is set.
+ */
+describe('capture mode', () => {
+  const realDev = (globalThis as { __DEV__?: boolean }).__DEV__;
+  afterEach(() => {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = realDev;
+    delete process.env.EXPO_PUBLIC_CAPTURE_MODE;
+  });
+
+  it('never raises the ATT prompt during a capture build', async () => {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = true;
+    process.env.EXPO_PUBLIC_CAPTURE_MODE = '1';
+    const calls = await trace({ canRequestAds: true }, (ads) => ads.bootstrapAds());
+    expect(calls).not.toContain('requestTracking');
+  });
+
+  it('still asks for tracking in a release build even if the flag leaks in', async () => {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = false;
+    process.env.EXPO_PUBLIC_CAPTURE_MODE = '1';
+    const calls = await trace({ canRequestAds: true }, (ads) => ads.bootstrapAds());
+    expect(calls).toContain('requestTracking');
+  });
+});

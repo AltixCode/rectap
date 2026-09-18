@@ -14,6 +14,18 @@
  * free-tier limits. Renaming an entitlement in RevenueCat means recreating it, and the public
  * SDK keys die with it — so this constant is pinned by a test.
  */
+/**
+ * NOTE FOR A NEW APP: `remove_ads` is the DEFAULT, not the answer.
+ *
+ * It is what 37 of the 44 projects in this portfolio use. The other seven grant `pro`, and six
+ * apps shipped this default unchanged while their RevenueCat project granted `pro`. In each of
+ * those the purchase succeeded, the receipt was valid, App Store review passed, and nothing
+ * unlocked -- no App Store Connect gate can see an entitlement name.
+ *
+ * Verify against the app's OWN project rather than against the app next to it:
+ *
+ *     rc entitlements list --project-id <the new app's project>
+ */
 export const PRO_ENTITLEMENT = 'remove_ads';
 
 /**

@@ -127,9 +127,6 @@ const config: ExpoConfig = {
     // iOS 26+ refuses to launch apps that have not adopted the UIScene lifecycle, which
     // Expo SDK 57 / RN 0.86 do not yet generate. Drop this once the template does it itself.
     './plugins/withUIScene',
-    // Adds the ReplayKit broadcast upload extension — the only public iOS API that can
-    // record the whole device rather than just this app's own UI. See the plugin.
-    './plugins/withBroadcastExtension',
     [
       'expo-splash-screen',
       {
@@ -159,19 +156,17 @@ const config: ExpoConfig = {
           minSdkVersion: 24,
           // Two architectures, not Expo's default four.
           //
-          // x86 and x86_64 are emulator targets -- nothing in the Play device
-          // population runs them. Building all four compiles every native
-          // module four times over, and the peak memory that produces is what
-          // killed the Gradle daemon on the CI runner: mergewit, multitick,
-          // poursort, ratherly and rectap all died at the same step with
-          // `DaemonDisappearedException`, which reads as a crash rather than as
-          // the out-of-memory kill it actually is.
+          // The default is ['armeabi-v7a','arm64-v8a','x86','x86_64'], and x86
+          // and x86_64 are emulator targets — no phone or tablet in the Play
+          // device population runs them. Building them compiled four native
+          // targets (the app, expo-modules-core, gesture-handler, reanimated)
+          // four times over: fifty-minute Android builds, and a Gradle daemon
+          // killed for memory on a 7 GB runner.
           //
-          // The template has carried this for a while; no generated app had it,
-          // which is why the whole portfolio failed the same way at once.
-          //
-          // The cost is that the app cannot install on x86 Android -- some
-          // Chromebooks and a few uncommon tablets. Reversible in one line.
+          // Halving the work halves the peak memory, which is what the kernel
+          // was objecting to. The cost is that the app cannot install on x86
+          // Android — some Chromebooks and a few uncommon tablets. Reversible
+          // in one line, and nothing has shipped to Play.
           buildArchs: ['arm64-v8a', 'armeabi-v7a'],
         },
       },

@@ -12,9 +12,21 @@ const yearly: PlanLike = { identifier: '$rc_annual', priceString: '$9.99', price
 const monthly: PlanLike = { identifier: '$rc_monthly', priceString: '$1.99', price: 1.99, periodUnit: 'MONTH' };
 
 describe('identifiers', () => {
-  it('matches the entitlement configured in RevenueCat', () => {
-    // Renaming an entitlement means recreating it, which invalidates the public
-    // SDK keys — so this constant is pinned by a test on purpose.
+  it('holds the portfolio default, which each app must confirm for itself', () => {
+    // This test used to be called "matches the entitlement configured in
+    // RevenueCat", and it never checked that: it compares the constant to a
+    // literal, and RevenueCat is not consulted -- there is no network in CI and
+    // no secret here that should carry that scope.
+    //
+    // That title was false in six apps. Their projects grant `pro`, this
+    // default says `remove_ads`, and a green test stood underneath vouching for
+    // a match that did not exist. Confirm the real value per app with:
+    //
+    //     rc entitlements list --project-id <that app's project>
+    //
+    // The pin is still worth having -- renaming an entitlement in RevenueCat
+    // means recreating it and the public SDK keys die with it, so a change here
+    // should be deliberate. It stays, under a name that says what it does.
     expect(PRO_ENTITLEMENT).toBe('remove_ads');
   });
 

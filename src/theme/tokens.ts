@@ -79,7 +79,9 @@ export const lightPalette: Palette = {
   textMuted: '#5F5F66',
   textFaint: '#85858D',
   border: '#E6E6E1',
-  borderStrong: '#CFCFC8',
+  // 3.24:1 against the light background. Use this, not `border`, for the
+  // boundary of anything a person has to SEE -- a card, a board cell, a tile.
+  borderStrong: '#8A8A82',
   accent: '#BE123C',
   onAccent: '#FFFFFF',
   success: '#059669',
@@ -98,7 +100,18 @@ export const darkPalette: Palette = {
   textMuted: '#A3A3AA',
   textFaint: '#6E6E76',
   border: '#26262A',
-  borderStrong: '#3A3A40',
+  // 3.49:1 against the lightest dark background any app in this portfolio
+  // generates, and 3.65:1 against the darkest. It was #3A3A40, which is
+  // 1.73:1 -- and `border` is 1.3:1 and `surface` about 1.1:1, so a board
+  // drawn with either was invisible in dark mode. That shipped: two live App
+  // Store screenshots showed grids with 70%+ of the frame indistinguishable
+  // from its own background.
+  //
+  // `#150A0D` is substituted per app, so a fixed value cannot GUARANTEE 3:1.
+  // The test in src/theme/__tests__/color.test.ts is what guarantees it: it
+  // is generated into every app and fails there if that app's background
+  // makes this value insufficient.
+  borderStrong: '#6A6A72',
   accent: '#FB7185',
   onAccent: '#0C0C0D',
   success: '#10B981',
@@ -174,4 +187,3 @@ export function scaleTypography(isTablet: boolean): ScaledTypography {
     ]),
   ) as ScaledTypography;
 }
-

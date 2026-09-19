@@ -572,6 +572,12 @@ jobs:
             exit 1
           fi
 
+          RAW_MAPPING=$(find android/app/build/outputs/mapping -name "mapping.txt" 2>/dev/null | head -n 1)
+          if [ -n "$RAW_MAPPING" ] && [ -f "$RAW_MAPPING" ]; then
+            cp "$RAW_MAPPING" "build/output/mapping.txt"
+            echo "Successfully generated mapping at build/output/mapping.txt"
+          fi
+
       - name: Upload to Google Play Store
         # `ENABLE_PLAY_UPLOAD` is an opt-OUT, checked only here.
         #
@@ -590,6 +596,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.altixcode.rectap
           releaseFiles: build/output/${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.app_version }}.aab
+          mappingFile: build/output/mapping.txt
           track: internal
           status: completed
           # Must be false until the app has been published once. Play answers
@@ -623,6 +630,7 @@ jobs:
           path: |
             build/output/*.apk
             build/output/*.aab
+            build/output/mapping.txt
           if-no-files-found: ignore
 
       - name: Release the disk this build took

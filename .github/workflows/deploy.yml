@@ -52,6 +52,8 @@ concurrency:
 # The AdMob and RevenueCat identifiers the build bakes in. Absent, the app falls back to
 # Google's test ad units and earns nothing, which nothing else in this pipeline notices.
 env:
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
   # These names must match `src/monetization/releaseConfig.ts` exactly. The two
   # earlier waves use `EXPO_PUBLIC_ADMOB_IOS_BANNER`; this template uses
   # `..._BANNER_ID`, and the two app ids carry no EXPO_PUBLIC_ prefix because the
@@ -140,6 +142,9 @@ jobs:
         run: npx expo prebuild --platform ios --clean --no-install
 
       - name: Install CocoaPods
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
         run: |
           cd ios
           pod install --repo-update
@@ -577,7 +582,7 @@ jobs:
         #
         # Unset means true, so this changes nothing anywhere until a repo sets it
         # to 'false', and it is per-repo rather than fleet-wide.
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.submit_to_stores == true) || (vars.ENABLE_STORE_UPLOADS == 'true' && vars.ENABLE_PLAY_UPLOAD != 'false') }}
+        if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.submit_to_stores == true) || vars.ENABLE_STORE_UPLOADS == 'true') && vars.ENABLE_PLAY_UPLOAD != 'false' }}
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}

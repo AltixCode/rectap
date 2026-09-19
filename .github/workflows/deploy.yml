@@ -55,6 +55,8 @@ env:
   LANG: en_US.UTF-8
   LC_ALL: en_US.UTF-8
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
   # These names must match `src/monetization/releaseConfig.ts` exactly. The two
   # earlier waves use `EXPO_PUBLIC_ADMOB_IOS_BANNER`; this template uses
   # `..._BANNER_ID`, and the two app ids carry no EXPO_PUBLIC_ prefix because the
@@ -146,7 +148,6 @@ jobs:
         env:
           LANG: en_US.UTF-8
           LC_ALL: en_US.UTF-8
-  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         run: |
           cd ios
           pod install --repo-update

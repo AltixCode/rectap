@@ -1,6 +1,5 @@
 import { contrastRatio, luminance, mix, readableTextOn, withAlpha } from '../color';
 import { darkPalette, lightPalette } from '../tokens';
-import { darkPalette, lightPalette } from '../tokens';
 
 describe('mix', () => {
   it('returns the background at 0 and the colour at 1', () => {

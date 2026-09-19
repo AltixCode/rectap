@@ -154,6 +154,11 @@ const config: ExpoConfig = {
           compileSdkVersion: 36,
           targetSdkVersion: 36,
           minSdkVersion: 24,
+          // R8 shrinking + obfuscation for release builds. Without this, Play
+          // Console's pre-launch report flags the app under 25% obfuscation
+          // and warns it may lose visibility/publishing eligibility.
+          enableProguardInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
           // Two architectures, not Expo's default four.
           //
           // The default is ['armeabi-v7a','arm64-v8a','x86','x86_64'], and x86

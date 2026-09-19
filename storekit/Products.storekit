@@ -1,0 +1,35 @@
+{
+  "identifier": "F041F845-68D4-4C6A-B67A-CA7D85B24B1F",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "8B78FF7B-4701-4EF7-BBA4-31B84C234503",
+      "localizations": [
+        {
+          "description": "rectap remove ads lifetime unlock",
+          "displayName": "rectap remove ads",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.altixcode.rectap.removeads",
+      "referenceName": "rectap remove ads",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_applicationInternalID": "",
+    "_developerTeamID": "",
+    "_failTransactionsEnabled": false,
+    "_lastSynchronizedDate": 0,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

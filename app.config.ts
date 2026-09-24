@@ -123,6 +123,13 @@ const config: ExpoConfig = {
   },
   web: { favicon: './assets/favicon.png' },
   plugins: [
+    // RevenueCat's Android SDK pulls in Amazon Appstore support unconditionally
+    // (react-native-purchases -> purchases-hybrid-common -> purchases-store-amazon ->
+    // com.amazon.device:amazon-appstore-sdk), which made R8 emit thousands of
+    // warnings during release minification and crash minifyReleaseWithR8 with
+    // OutOfMemoryError: Metaspace -- see the plugin file for the full trace.
+    './plugins/withExcludeAmazonAppstore',
+
     'expo-router',
     // iOS 26+ refuses to launch apps that have not adopted the UIScene lifecycle, which
     // Expo SDK 57 / RN 0.86 do not yet generate. Drop this once the template does it itself.

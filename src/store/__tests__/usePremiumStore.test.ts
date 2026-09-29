@@ -147,16 +147,60 @@ describe('restore', () => {
 });
 
 describe('refreshOfferings', () => {
-  it('stores the single lifetime package', async () => {
-    mocked.lifetimePackage.mockReturnValue(somePackage);
-    await usePremiumStore.getState().refreshOfferings();
-    expect(usePremiumStore.getState().lifetime).toBe(somePackage);
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
-  it('leaves the paywall with nothing to sell when the offering carries no lifetime', async () => {
-    mocked.lifetimePackage.mockReturnValue(null);
+  it('stores the single lifetime package on the first attempt', async () => {
+    mocked.lifetimePackage.mockReturnValue(somePackage);
     await usePremiumStore.getState().refreshOfferings();
-    expect(usePremiumStore.getState().lifetime).toBeNull();
+    expect(usePremiumStore.getState()).toMatchObject({ lifetime: somePackage, offeringsResolved: true });
+    expect(mocked.getCurrentOffering).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries when StoreKit has not resolved the product yet, and resolves once it has', async () => {
+    // A fresh offering fetch right after `configurePurchases()` resolves can carry the
+    // package with no StoreKit product attached yet -- indistinguishable from "no lifetime
+    // package" unless something asks again. This is that case, not the "never arrives" case.
+    mocked.lifetimePackage
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(somePackage);
+
+    jest.useFakeTimers();
+    const promise = usePremiumStore.getState().refreshOfferings();
+    await jest.advanceTimersByTimeAsync(500);
+    await jest.advanceTimersByTimeAsync(1000);
+    await promise;
+
+    expect(usePremiumStore.getState()).toMatchObject({ lifetime: somePackage, offeringsResolved: true });
+    expect(mocked.getCurrentOffering).toHaveBeenCalledTimes(3);
+  });
+
+  it('leaves the paywall with nothing to sell once every retry finds no lifetime package', async () => {
+    mocked.lifetimePackage.mockReturnValue(null);
+
+    jest.useFakeTimers();
+    const promise = usePremiumStore.getState().refreshOfferings();
+    await jest.advanceTimersByTimeAsync(500);
+    await jest.advanceTimersByTimeAsync(1000);
+    await jest.advanceTimersByTimeAsync(2000);
+    await promise;
+
+    expect(usePremiumStore.getState()).toMatchObject({ lifetime: null, offeringsResolved: true });
+    expect(mocked.getCurrentOffering).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps retrying through a transient error instead of giving up on the first one', async () => {
+    mocked.getCurrentOffering.mockRejectedValueOnce(new Error('offline'));
+    mocked.lifetimePackage.mockReturnValueOnce(somePackage);
+
+    jest.useFakeTimers();
+    const promise = usePremiumStore.getState().refreshOfferings();
+    await jest.advanceTimersByTimeAsync(500);
+    await promise;
+
+    expect(usePremiumStore.getState()).toMatchObject({ lifetime: somePackage, offeringsResolved: true });
   });
 });
 

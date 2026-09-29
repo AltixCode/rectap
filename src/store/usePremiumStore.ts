@@ -44,6 +44,23 @@ interface PremiumState {
 
 let unsubscribe: (() => void) | null = null;
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * A fresh offering fetch immediately after `configurePurchases()` resolves can still come back
+ * with the package's underlying StoreKit product unresolved -- RevenueCat drops a package from
+ * `availablePackages` whenever the store hasn't returned its product yet, which reads
+ * indistinguishably from "this app has no lifetime product". This is what a paywall opened in
+ * the first second or two after launch used to show: `offeringsResolved: true, lifetime: null`,
+ * permanently, because nothing ever asked StoreKit a second time.
+ *
+ * These are retry backoffs, not a timeout: `refreshOfferings` keeps the paywall on its loading
+ * state (not "unavailable") until either a lifetime package resolves or every retry is spent.
+ */
+const OFFERING_RETRY_DELAYS_MS = [500, 1000, 2000];
+
 async function cacheEntitlement(isPremium: boolean): Promise<void> {
   try {
     await AsyncStorage.setItem(CACHE_KEY, isPremium ? '1' : '0');
@@ -106,14 +123,23 @@ export const usePremiumStore = create<PremiumState>((set, get) => ({
   },
 
   async refreshOfferings() {
-    try {
-      const offering = await getCurrentOffering();
-      set({ lifetime: lifetimePackage(offering), offeringsResolved: true });
-    } catch {
-      // A store that cannot be reached resolves to "no package", which the paywall renders
-      // as its unavailable state. Throwing here would leave the screen spinning.
-      set({ lifetime: null, offeringsResolved: true });
+    for (const delay of [0, ...OFFERING_RETRY_DELAYS_MS]) {
+      if (delay) await sleep(delay);
+      try {
+        const offering = await getCurrentOffering();
+        const lifetime = lifetimePackage(offering);
+        if (lifetime) {
+          set({ lifetime, offeringsResolved: true });
+          return;
+        }
+      } catch {
+        // Keep retrying on the same schedule -- a transient network error looks
+        // identical to a product StoreKit hasn't warmed up yet.
+      }
     }
+    // A store that genuinely carries no package resolves to "no package", which the paywall
+    // renders as its unavailable state. Throwing here would leave the screen spinning.
+    set({ lifetime: null, offeringsResolved: true });
   },
 
   async purchase(pkg) {

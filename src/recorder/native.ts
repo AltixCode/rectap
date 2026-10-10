@@ -13,6 +13,7 @@ export type { Recording, RecorderStatus, StartOutcome };
 
 export interface RecorderNative {
   isSupported(): boolean;
+  unsupportedReason(): string | null;
   usesSystemPicker(): boolean;
   getStatus(): RecorderStatus;
   clearError(): void;
@@ -34,10 +35,13 @@ export interface RecorderNative {
  *
  * Reporting `isSupported: false` is not a pretence that recording works. It is what makes
  * the UI say plainly that this device cannot record, which is the truth in every one of
- * those environments.
+ * those environments. `unsupportedReason` is deliberately not `"simulator"` here — Jest and
+ * Expo Go run on real hardware too, and telling someone on a real phone to find a simulator
+ * would be a worse lie than the generic one.
  */
 const unavailable: RecorderNative = {
   isSupported: () => false,
+  unsupportedReason: () => "native-module-missing",
   usesSystemPicker: () => Platform.OS === "ios",
   getStatus: () => ({ isRecording: false }),
   clearError: () => {},

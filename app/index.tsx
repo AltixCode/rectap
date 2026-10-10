@@ -84,7 +84,9 @@ export default function Home() {
           <Card style={{ marginTop: spacing.xl }}>
             <Text variant="bodyStrong">{t("unsupportedTitle")}</Text>
             <Text variant="body" tone="muted" style={{ marginTop: spacing.xs }}>
-              {t("unsupportedBody")}
+              {recorder.unsupportedReason === "simulator"
+                ? t("unsupportedBody")
+                : t("unsupportedBodyDevice")}
             </Text>
           </Card>
         )}

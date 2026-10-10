@@ -38,6 +38,9 @@ class ScreenRecorderModule : Module() {
     /** MediaProjection is API 21+; the app's own minSdk is 24, so this is always true. */
     Function("isSupported") { true }
 
+    /** Android has no simulator/App-Group split — `isSupported` is never false. */
+    Function("unsupportedReason") { null as String? }
+
     /**
      * iOS has to go through Apple's system broadcast picker, which is a view rather than a
      * call. Android does not, and the UI needs to know which of the two it is drawing.

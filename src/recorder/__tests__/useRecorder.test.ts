@@ -13,7 +13,9 @@ import type { RecorderNative, Recording, RecorderStatus } from "../native";
  * reaches on a physical device: a broadcast that starts outside the app, one the system ends
  * on its own, and one that stops because the free cap was reached.
  */
-const mockStatus: { current: RecorderStatus } = { current: { isRecording: false } };
+const mockStatus: { current: RecorderStatus } = {
+  current: { isRecording: false },
+};
 const mockLibrary: { current: Recording[] } = { current: [] };
 const mockCalls = {
   setMaxDuration: jest.fn(),
@@ -25,11 +27,13 @@ const mockCalls = {
 
 let mockUsesPicker = false;
 let mockSupported = true;
+let mockUnsupportedReason: string | null = null;
 
 jest.mock("../native", () => ({
   get recorder(): RecorderNative {
     return {
       isSupported: () => mockSupported,
+      unsupportedReason: () => mockUnsupportedReason,
       usesSystemPicker: () => mockUsesPicker,
       getStatus: () => mockStatus.current,
       clearError: () => {
@@ -43,7 +47,9 @@ jest.mock("../native", () => ({
       listRecordings: async () => mockLibrary.current,
       deleteRecording: async (id: string) => {
         mockCalls.deleteRecording(id);
-        mockLibrary.current = mockLibrary.current.filter((entry) => entry.id !== id);
+        mockLibrary.current = mockLibrary.current.filter(
+          (entry) => entry.id !== id,
+        );
         return true;
       },
     } as RecorderNative;
@@ -89,6 +95,7 @@ beforeEach(() => {
   mockLibrary.current = [];
   mockUsesPicker = false;
   mockSupported = true;
+  mockUnsupportedReason = null;
   usePremiumStore.setState({ isPremium: false, isReady: true });
   mockCalls.startRecording.mockResolvedValue("started");
 });
@@ -154,6 +161,13 @@ describe("useRecorder", () => {
     });
     expect(mockCalls.startRecording).not.toHaveBeenCalled();
     expect(result.current.isSupported).toBe(false);
+  });
+
+  it("surfaces why recording is unsupported, not just that it is", async () => {
+    mockSupported = false;
+    mockUnsupportedReason = "app-group";
+    const { result } = await renderHook(() => useRecorder());
+    expect(result.current.unsupportedReason).toBe("app-group");
   });
 
   it("follows the native side into recording, even when the app never started it", async () => {

@@ -42,6 +42,14 @@ export type StartOutcome =
 
 interface ScreenRecorderNativeModule {
   isSupported(): boolean;
+  /**
+   * Why `isSupported` is false, or `null` when it is true.
+   *
+   * `isSupported` alone cannot tell a real device apart from a simulator: on iOS it is also
+   * false when the App Group entitlement the broadcast extension depends on is not wired up,
+   * which is a device problem, not a simulator one. The two need different copy.
+   */
+  unsupportedReason(): string | null;
   usesSystemPicker(): boolean;
   getStatus(): RecorderStatus;
   clearError(): void;

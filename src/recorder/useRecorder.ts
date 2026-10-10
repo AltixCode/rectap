@@ -32,6 +32,8 @@ export interface RecorderController {
   phase: RecorderPhase;
   view: RecorderView;
   isSupported: boolean;
+  /** Why `isSupported` is false, or null when it is true. See `RecorderNative.unsupportedReason`. */
+  unsupportedReason: string | null;
   usesSystemPicker: boolean;
   recordings: Recording[];
   summary: LibrarySummary;
@@ -60,6 +62,7 @@ export function useRecorder(): RecorderController {
   const [hitLimit, setHitLimit] = useState(false);
 
   const isSupported = useMemo(() => recorder.isSupported(), []);
+  const unsupportedReason = useMemo(() => recorder.unsupportedReason(), []);
   const usesSystemPicker = useMemo(() => recorder.usesSystemPicker(), []);
 
   // Held in a ref as well as state so the poll can read the current phase without
@@ -195,6 +198,7 @@ export function useRecorder(): RecorderController {
     phase,
     view,
     isSupported,
+    unsupportedReason,
     usesSystemPicker,
     recordings,
     summary,

@@ -19,11 +19,17 @@ public class ScreenRecorderModule: Module {
     /// simulator has no broadcast infrastructure: the picker appears and nothing ever starts.
     /// The JS side uses this to say so plainly rather than leaving a dead button.
     Function("isSupported") { () -> Bool in
-      #if targetEnvironment(simulator)
-        return false
-      #else
-        return RectapShared.containerURL() != nil
-      #endif
+      Self.unsupportedReason() == nil
+    }
+
+    /// Why `isSupported` is false, or `nil` when it is true.
+    ///
+    /// The simulator and a real device missing its App Group entitlement both make
+    /// `isSupported` false, but they are not the same problem and must not share a message:
+    /// telling someone on real hardware to find a simulator is a worse lie than saying
+    /// nothing was wrong at all.
+    Function("unsupportedReason") { () -> String? in
+      Self.unsupportedReason()
     }
 
     /// iOS can only start a broadcast through Apple's own picker, which is a view rather
@@ -121,6 +127,18 @@ public class ScreenRecorderModule: Module {
         view.picker.preferredExtension = value
       }
     }
+  }
+
+  // MARK: - Support
+
+  /// `"simulator"` in the simulator, `"app-group"` on a device that cannot open the shared
+  /// container, `nil` when recording can actually start.
+  private static func unsupportedReason() -> String? {
+    #if targetEnvironment(simulator)
+      return "simulator"
+    #else
+      return RectapShared.containerURL() == nil ? "app-group" : nil
+    #endif
   }
 
   // MARK: - Library

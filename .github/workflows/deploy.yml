@@ -710,7 +710,10 @@ jobs:
             "-Pandroid.injected.signing.key.password=$KEY_PASSWORD"
           cd ..
 
-          RAW_APK=$(find android/app/build/outputs/apk -name "*release*.apk" 2>/dev/null | head -n 1)
+          # The runner runs this as `bash -eo pipefail`: a `find` on a folder that does not
+          # exist exits 1 and -e kills the step silently (stderr is discarded). `|| true`
+          # keeps that an empty result, so the explicit checks below fail with a message.
+          RAW_APK=$(find android/app/build/outputs/apk -name "*release*.apk" 2>/dev/null | head -n 1 || true)
           if [ -n "$RAW_APK" ] && [ -f "$RAW_APK" ]; then
             cp "$RAW_APK" "build/output/${APP_NAME}-${APP_VERSION}.apk"
             echo "Successfully generated APK at build/output/${APP_NAME}-${APP_VERSION}.apk"
@@ -719,7 +722,7 @@ jobs:
             exit 1
           fi
 
-          RAW_AAB=$(find android/app/build/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+          RAW_AAB=$(find android/app/build/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1 || true)
           if [ -n "$RAW_AAB" ] && [ -f "$RAW_AAB" ]; then
             cp "$RAW_AAB" "build/output/${APP_NAME}-${APP_VERSION}.aab"
             echo "Successfully generated AAB at build/output/${APP_NAME}-${APP_VERSION}.aab"
@@ -728,7 +731,7 @@ jobs:
             exit 1
           fi
 
-          RAW_MAPPING=$(find android/app/build/outputs/mapping -name "mapping.txt" 2>/dev/null | head -n 1)
+          RAW_MAPPING=$(find android/app/build/outputs/mapping -name "mapping.txt" 2>/dev/null | head -n 1 || true)
           if [ -n "$RAW_MAPPING" ] && [ -f "$RAW_MAPPING" ]; then
             cp "$RAW_MAPPING" "build/output/mapping.txt"
             echo "Successfully generated mapping at build/output/mapping.txt"
